@@ -1,0 +1,204 @@
+/*
+ * SPDX-FileCopyrightText: 2026 The OSverflow Project
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+package com.android.server.ext;
+
+import android.annotation.SuppressLint;
+import android.app.AlarmManager;
+import android.app.KeyguardManager;
+import android.content.BroadcastReceiver;
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.ContentObserver;
+import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerExecutor;
+import android.os.PowerManager;
+import android.os.SystemClock;
+import android.os.UserHandle;
+import android.os.UserManager;
+import android.util.Slog;
+
+import lineageos.providers.LineageSettings;
+
+final class InactivityRebootService {
+    static final String SETTING = "osverflow_inactivity_reboot_timeout_ms";
+    static final int TEST_TIMEOUT_MS = 60_000;
+    static final int ONE_HOUR_MS = 60 * 60 * 1000;
+    private static final int RETRY_TIMEOUT_MS = 5 * 60 * 1000;
+    private static final int[] ALLOWED_TIMEOUTS_MS = {
+            ONE_HOUR_MS,
+            4 * ONE_HOUR_MS,
+            8 * ONE_HOUR_MS,
+            12 * ONE_HOUR_MS,
+            24 * ONE_HOUR_MS,
+            48 * ONE_HOUR_MS,
+            72 * ONE_HOUR_MS,
+    };
+
+    private static final String TAG = "OSverflowInactivityReboot";
+
+    private final Context mContext;
+    private final Handler mHandler;
+    private final AlarmManager mAlarmManager;
+    private final KeyguardManager mKeyguardManager;
+    private final PowerManager mPowerManager;
+    private final UserManager mUserManager;
+
+    private boolean mUnlockedSinceBoot;
+    private boolean mLocked;
+    private long mLockedAtElapsed;
+    private long mAlarmGeneration;
+    private AlarmManager.OnAlarmListener mAlarmListener;
+
+    static void init(Context context, Handler handler) {
+        new InactivityRebootService(context, handler).start();
+    }
+
+    private InactivityRebootService(Context context, Handler handler) {
+        mContext = context;
+        mHandler = handler;
+        mAlarmManager = context.getSystemService(AlarmManager.class);
+        mKeyguardManager = context.getSystemService(KeyguardManager.class);
+        mPowerManager = context.getSystemService(PowerManager.class);
+        mUserManager = context.getSystemService(UserManager.class);
+    }
+
+    @SuppressLint("AndroidFrameworkRequiresPermission")
+    private void start() {
+        if (mAlarmManager == null || mKeyguardManager == null || mPowerManager == null
+                || mUserManager == null) {
+            Slog.wtf(TAG, "Required system service unavailable");
+            return;
+        }
+
+        mUnlockedSinceBoot = mUserManager.isUserUnlocked(UserHandle.SYSTEM);
+
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(Intent.ACTION_USER_UNLOCKED);
+        filter.addAction(Intent.ACTION_USER_PRESENT);
+        mContext.registerReceiver(mUnlockReceiver, filter, null, mHandler,
+                Context.RECEIVER_NOT_EXPORTED);
+
+        ContentResolver resolver = mContext.getContentResolver();
+        resolver.registerContentObserver(LineageSettings.Global.getUriFor(SETTING), false,
+                new ContentObserver(mHandler) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        evaluatePolicy();
+                    }
+                });
+
+        mKeyguardManager.addKeyguardLockedStateListener(new HandlerExecutor(mHandler),
+                this::onKeyguardStateChanged);
+        onKeyguardStateChanged(mKeyguardManager.isDeviceLocked(UserHandle.USER_SYSTEM));
+    }
+
+    private final BroadcastReceiver mUnlockReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (Intent.ACTION_USER_UNLOCKED.equals(intent.getAction())) {
+                int userId = intent.getIntExtra(Intent.EXTRA_USER_HANDLE, UserHandle.USER_NULL);
+                if (userId != UserHandle.USER_SYSTEM) {
+                    return;
+                }
+            }
+            mUnlockedSinceBoot |= mUserManager.isUserUnlocked(UserHandle.SYSTEM);
+            onKeyguardStateChanged(mKeyguardManager.isDeviceLocked(UserHandle.USER_SYSTEM));
+        }
+    };
+
+    private void onKeyguardStateChanged(boolean locked) {
+        mUnlockedSinceBoot |= mUserManager.isUserUnlocked(UserHandle.SYSTEM);
+        if (locked && !mLocked) {
+            mLockedAtElapsed = SystemClock.elapsedRealtime();
+        } else if (!locked) {
+            mLockedAtElapsed = 0;
+        }
+        mLocked = locked;
+        evaluatePolicy();
+    }
+
+    private void evaluatePolicy() {
+        int timeout = readTimeout();
+        boolean secure = mKeyguardManager.isDeviceSecure(UserHandle.USER_SYSTEM);
+        if (!shouldArm(timeout, mUnlockedSinceBoot, secure, mLocked)) {
+            cancelAlarm();
+            return;
+        }
+
+        long deadline = mLockedAtElapsed + timeout;
+        scheduleAlarm(deadline);
+    }
+
+    private int readTimeout() {
+        int value = LineageSettings.Global.getInt(mContext.getContentResolver(), SETTING, 0);
+        return normalizeTimeout(value, Build.IS_DEBUGGABLE);
+    }
+
+    private void scheduleAlarm(long deadline) {
+        cancelAlarm();
+        long generation = ++mAlarmGeneration;
+        mAlarmListener = () -> onAlarm(generation);
+        mAlarmManager.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP,
+                Math.max(deadline, SystemClock.elapsedRealtime()), TAG,
+                new HandlerExecutor(mHandler), null, mAlarmListener);
+    }
+
+    private void cancelAlarm() {
+        ++mAlarmGeneration;
+        if (mAlarmListener != null) {
+            mAlarmManager.cancel(mAlarmListener);
+            mAlarmListener = null;
+        }
+    }
+
+    private void onAlarm(long generation) {
+        if (generation != mAlarmGeneration) {
+            return;
+        }
+        mAlarmListener = null;
+
+        int timeout = readTimeout();
+        boolean secure = mKeyguardManager.isDeviceSecure(UserHandle.USER_SYSTEM);
+        boolean locked = mKeyguardManager.isDeviceLocked(UserHandle.USER_SYSTEM);
+        if (!shouldArm(timeout, mUnlockedSinceBoot, secure, locked)) {
+            return;
+        }
+
+        long deadline = mLockedAtElapsed + timeout;
+        if (SystemClock.elapsedRealtime() < deadline) {
+            scheduleAlarm(deadline);
+            return;
+        }
+
+        Slog.i(TAG, "Rebooting locked AFU device to BFU");
+        try {
+            mPowerManager.reboot("osverflow-inactivity");
+        } catch (RuntimeException e) {
+            Slog.wtf(TAG, "Reboot failed; retrying", e);
+            scheduleAlarm(SystemClock.elapsedRealtime() + RETRY_TIMEOUT_MS);
+        }
+    }
+
+    static boolean shouldArm(int timeout, boolean unlockedSinceBoot, boolean secure,
+            boolean locked) {
+        return timeout > 0 && unlockedSinceBoot && secure && locked;
+    }
+
+    static int normalizeTimeout(int value, boolean debuggable) {
+        if (debuggable && value == TEST_TIMEOUT_MS) {
+            return value;
+        }
+        for (int allowed : ALLOWED_TIMEOUTS_MS) {
+            if (value == allowed) {
+                return value;
+            }
+        }
+        return 0;
+    }
+}

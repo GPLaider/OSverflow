@@ -1,0 +1,161 @@
+diff --git a/services/core/java/com/android/server/location/LocationManagerService.java b/services/core/java/com/android/server/location/LocationManagerService.java
+index 03558ee94490..5ce54f6da744 100644
+--- a/services/core/java/com/android/server/location/LocationManagerService.java
++++ b/services/core/java/com/android/server/location/LocationManagerService.java
+@@ -1391,11 +1391,27 @@ public class LocationManagerService extends ILocationManager.Stub implements
+ 
+     @Override
+     public void setLocationEnabledForUser(boolean enabled, int userId) {
++        final int callingUid = Binder.getCallingUid();
+         userId = ActivityManager.handleIncomingUser(Binder.getCallingPid(), Binder.getCallingUid(),
+                 userId, false, false, "setLocationEnabledForUser", null);
+ 
+         mContext.enforceCallingOrSelfPermission(WRITE_SECURE_SETTINGS, null);
+ 
++        final int changer = Settings.Secure.getIntForUser(mContext.getContentResolver(),
++                Settings.Secure.LOCATION_CHANGER,
++                Settings.Secure.LOCATION_CHANGER_UNKNOWN, userId);
++        final boolean changerConsumed = Settings.Secure.putIntForUser(mContext.getContentResolver(),
++                Settings.Secure.LOCATION_CHANGER,
++                Settings.Secure.LOCATION_CHANGER_UNKNOWN, userId);
++        if (enabled && !mInjector.getSettingsHelper().isLocationEnabled(userId)
++                && (!changerConsumed || callingUid != Process.SYSTEM_UID
++                        || changer != Settings.Secure.LOCATION_CHANGER_SYSTEM_SETTINGS)) {
++            Log.i(TAG, "OSverflow privacy lock rejected location unlock: changer=" + changer
++                    + " consumed=" + changerConsumed + " uid=" + callingUid
++                    + " user=" + userId);
++            return;
++        }
++
+         LocationManager.invalidateLocalLocationEnabledCaches();
+         mInjector.getSettingsHelper().setLocationEnabled(enabled, userId);
+     }
+@@ -1746,33 +1762,19 @@ public class LocationManagerService extends ILocationManager.Stub implements
+ 
+         boolean enabled = mInjector.getSettingsHelper().isLocationEnabled(userId);
+ 
+-        PackageTagsList allowedPackages = null;
+-        if (!enabled) {
+-            PackageTagsList.Builder builder = new PackageTagsList.Builder();
+-            for (LocationProviderManager manager : mProviderManagers) {
+-                CallerIdentity identity = manager.getProviderIdentity();
+-                if (identity != null) {
+-                    builder.add(identity.getPackageName(), identity.getAttributionTag());
+-                }
+-            }
+-            builder.addAll(mInjector.getSettingsHelper().getIgnoreSettingsAllowlist());
+-            builder.addAll(mInjector.getSettingsHelper().getAdasAllowlist());
+-            allowedPackages = builder.build();
+-        }
+-
+         AppOpsManager appOpsManager = Objects.requireNonNull(
+                 mContext.getSystemService(AppOpsManager.class));
+         appOpsManager.setUserRestrictionForUser(
+                 AppOpsManager.OP_COARSE_LOCATION,
+                 !enabled,
+                 LocationManagerService.this,
+-                allowedPackages,
++                null,
+                 userId);
+         appOpsManager.setUserRestrictionForUser(
+                 AppOpsManager.OP_FINE_LOCATION,
+                 !enabled,
+                 LocationManagerService.this,
+-                allowedPackages,
++                null,
+                 userId);
+     }
+ 
+diff --git a/services/core/java/com/android/server/sensorprivacy/SensorPrivacyService.java b/services/core/java/com/android/server/sensorprivacy/SensorPrivacyService.java
+index 6ee7675e2312..36609f8e427a 100644
+--- a/services/core/java/com/android/server/sensorprivacy/SensorPrivacyService.java
++++ b/services/core/java/com/android/server/sensorprivacy/SensorPrivacyService.java
+@@ -463,6 +463,12 @@ public final class SensorPrivacyService extends SystemService {
+                 return;
+             }
+ 
++            if (isToggleSensorPrivacyEnabled(TOGGLE_TYPE_SOFTWARE, sensor)) {
++                Log.i(TAG, "OSverflow privacy lock suppressed sensor-unlock reminder for "
++                        + packageName + "/" + uid + " sensor=" + sensor);
++                return;
++            }
++
+             if (uid == Process.SYSTEM_UID
+                     && !(com.android.server.telecom.flags.Flags.resolveHiddenDependenciesTwo()
+                     && isPhoneCall)) {
+@@ -892,6 +898,12 @@ public final class SensorPrivacyService extends SystemService {
+                         + " state=" + state
+                         + ")");
+             }
++            if (toggleType == TOGGLE_TYPE_SOFTWARE && state == DISABLED
++                    && !isAuthorizedSoftwareUnlock(source)) {
++                Log.i(TAG, "OSverflow privacy lock rejected sensor unlock: source=" + source
++                        + " uid=" + Binder.getCallingUid() + " sensor=" + sensor);
++                return;
++            }
+             long[] lastChange = new long[1];
+             mSensorPrivacyStateController.atomic(() -> {
+                 SensorState sensorState = mSensorPrivacyStateController
+@@ -1070,6 +1082,12 @@ public final class SensorPrivacyService extends SystemService {
+                         + " enable=" + enable
+                         + ")");
+             }
++            if (toggleType == TOGGLE_TYPE_SOFTWARE && !enable
++                    && !isAuthorizedSoftwareUnlock(source)) {
++                Log.i(TAG, "OSverflow privacy lock rejected sensor unlock: source=" + source
++                        + " uid=" + Binder.getCallingUid() + " sensor=" + sensor);
++                return;
++            }
+             final long[] lastChange = new long[1];
+             mSensorPrivacyStateController.atomic(() -> {
+                 SensorState sensorState = mSensorPrivacyStateController
+@@ -1090,32 +1108,19 @@ public final class SensorPrivacyService extends SystemService {
+         }
+ 
+         private boolean canChangeToggleSensorPrivacy(@UserIdInt int userId, int sensor) {
+-            if (sensor == MICROPHONE && mCallStateHelper.isInEmergencyCall()) {
+-                // During emergency call the microphone toggle managed automatically
+-                Log.i(TAG, "Can't change mic toggle during an emergency call");
+-                return false;
+-            }
+-
+             if (requiresAuthentication() && mKeyguardManager != null
+                     && mKeyguardManager.isDeviceLocked(userId)) {
+                 Log.i(TAG, "Can't change mic/cam toggle while device is locked");
+                 return false;
+             }
+-
+-            if (sensor == MICROPHONE && mUserManagerInternal.getUserRestriction(userId,
+-                    UserManager.DISALLOW_MICROPHONE_TOGGLE)) {
+-                Log.i(TAG, "Can't change mic toggle due to admin restriction");
+-                return false;
+-            }
+-
+-            if (sensor == CAMERA && mUserManagerInternal.getUserRestriction(userId,
+-                    UserManager.DISALLOW_CAMERA_TOGGLE)) {
+-                Log.i(TAG, "Can't change camera toggle due to admin restriction");
+-                return false;
+-            }
+             return true;
+         }
+ 
++        private boolean isAuthorizedSoftwareUnlock(
++                @SensorPrivacyManager.Sources.Source int source) {
++            return source == SETTINGS && Binder.getCallingUid() == Process.SYSTEM_UID;
++        }
++
+         private void logSensorPrivacyToggle(int source, int sensor, boolean enabled,
+                 long lastChange, boolean onShutDown) {
+             long logMins = Math.max(0, (getCurrentTimeMillis() - lastChange) / (1000 * 60));
+@@ -1419,6 +1424,11 @@ public final class SensorPrivacyService extends SystemService {
+             if (!isCombinedToggleSensorPrivacyEnabled(sensor)) {
+                 return;
+             }
++            if (isToggleSensorPrivacyEnabled(TOGGLE_TYPE_SOFTWARE, sensor)) {
++                Log.i(TAG, "OSverflow privacy lock suppressed explicit sensor-unlock reminder: "
++                        + "sensor=" + sensor);
++                return;
++            }
+             enqueueSensorUseReminderDialogAsync(
+                     -1, UserHandle.of(mCurrentUser), "android", sensor);
+         }

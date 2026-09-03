@@ -1,0 +1,14 @@
+<string name="compatibility_profiles_title">Compatibility profiles</string>
+<string name="compatibility_profiles_dashboard_summary">Signed, package-scoped Android compatibility exceptions</string>
+<string name="compatibility_profiles_empty">No compatibility profiles are installed.</string>
+<string name="compatibility_profiles_invalid">The signed profile catalog is invalid or unavailable. No profile was applied.</string>
+<string name="compatibility_profile_summary">Status: %1$s\nSecurity impact: %2$s\nExpires: %3$s\nReason: %4$s\nPackage: %5$s</string>
+<string name="compatibility_profile_status_active">Active</string>
+<string name="compatibility_profile_status_retired">Retired</string>
+<string name="compatibility_profile_status_expired">Expired</string>
+<string name="compatibility_profile_status_not_installed">App not installed</string>
+<string name="compatibility_profile_status_signer_mismatch">Signer mismatch</string>
+<string name="compatibility_profile_status_version_mismatch">Version outside profile range</string>
+<string name="compatibility_profile_impact_none">No reduction declared</string>
+<string name="compatibility_profile_impact_app">Reduces protection for this app</string>
+<string name="compatibility_profile_impact_platform">Reduces platform protection</string>

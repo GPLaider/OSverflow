@@ -1,0 +1,88 @@
+diff --git a/src/java/com/android/internal/telephony/InboundSmsHandler.java b/src/java/com/android/internal/telephony/InboundSmsHandler.java
+index 91f4425f51..8d69fc08f2 100644
+--- a/src/java/com/android/internal/telephony/InboundSmsHandler.java
++++ b/src/java/com/android/internal/telephony/InboundSmsHandler.java
+@@ -904,6 +904,11 @@ public abstract class InboundSmsHandler extends StateMachine {
+      */
+     @UnsupportedAppUsage(maxTargetSdk = Build.VERSION_CODES.R, trackingBug = 170729553)
+     protected int dispatchNormalMessage(SmsMessageBase sms, @SmsSource int smsSource) {
++        if (!SMSDispatcher.isSmsAccessEnabled(mContext)) {
++            log("OSverflow SMS access disabled; incoming SMS acknowledged and discarded.");
++            return Intents.RESULT_SMS_HANDLED;
++        }
++
+         SmsHeader smsHeader = sms.getUserDataHeader();
+         InboundSmsTracker tracker;
+ 
+diff --git a/src/java/com/android/internal/telephony/SMSDispatcher.java b/src/java/com/android/internal/telephony/SMSDispatcher.java
+index d3adb05991..6cf5664afc 100644
+--- a/src/java/com/android/internal/telephony/SMSDispatcher.java
++++ b/src/java/com/android/internal/telephony/SMSDispatcher.java
+@@ -116,6 +116,7 @@ import java.util.concurrent.atomic.AtomicInteger;
+ public abstract class SMSDispatcher extends Handler {
+     static final String TAG = "SMSDispatcher";    // accessed from inner class
+     static final boolean DBG = false;
++    static final String SMS_ACCESS_SETTING = "osverflow_sms_access";
+     private static final String SEND_NEXT_MSG_EXTRA = "SendNextMsg";
+     private static final String MESSAGE_ID_EXTRA = "MessageId";
+     protected static final String MAP_KEY_PDU = "pdu";
+@@ -131,6 +132,11 @@ public abstract class SMSDispatcher extends Handler {
+     private final AtomicInteger mPremiumSmsRule = new AtomicInteger(PREMIUM_RULE_USE_SIM);
+     private final SettingsObserver mSettingsObserver;
+ 
++    static boolean isSmsAccessEnabled(Context context) {
++        return Settings.Global.getInt(
++                context.getContentResolver(), SMS_ACCESS_SETTING, 1) != 0;
++    }
++
+     /** SMS send complete. */
+     protected static final int EVENT_SEND_SMS_COMPLETE = 2;
+ 
+@@ -396,8 +402,14 @@ public abstract class SMSDispatcher extends Handler {
+ 
+             case EVENT_SEND_CONFIRMED_SMS: {
+                 SmsTracker[] trackers = (SmsTracker[]) msg.obj;
+-                for (SmsTracker tracker : trackers) {
+-                    sendSms(tracker);
++                if (!isSmsAccessEnabled(mContext)) {
++                    Rlog.i(TAG, "OSverflow SMS access disabled; rejecting confirmed SMS");
++                    handleSmsTrackersFailure(
++                            trackers, SmsManager.RESULT_ERROR_NO_SERVICE, NO_ERROR_CODE);
++                } else {
++                    for (SmsTracker tracker : trackers) {
++                        sendSms(tracker);
++                    }
+                 }
+                 mPendingTrackerCount--;
+                 break;
+@@ -2087,7 +2099,10 @@ public abstract class SMSDispatcher extends Handler {
+     public void sendRawPdu(SmsTracker[] trackers) {
+         @SmsManager.Result int error = SmsManager.RESULT_ERROR_NONE;
+         PackageInfo appInfo = null;
+-        if (mSmsSendDisabled) {
++        if (!isSmsAccessEnabled(mContext)) {
++            Rlog.i(TAG, "OSverflow SMS access disabled; rejecting outgoing SMS");
++            error = SmsManager.RESULT_ERROR_NO_SERVICE;
++        } else if (mSmsSendDisabled) {
+             Rlog.e(TAG, "Device does not support sending sms.");
+             error = SmsManager.RESULT_ERROR_NO_SERVICE;
+         } else {
+diff --git a/src/java/com/android/internal/telephony/SmsDispatchersController.java b/src/java/com/android/internal/telephony/SmsDispatchersController.java
+index 747adf285d..3d69790828 100644
+--- a/src/java/com/android/internal/telephony/SmsDispatchersController.java
++++ b/src/java/com/android/internal/telephony/SmsDispatchersController.java
+@@ -872,6 +872,14 @@ public class SmsDispatchersController extends Handler {
+      * @param retryUsingImsService a flag to indicate whether the retry SMS can use the ImsService
+      */
+     public void sendRetrySms(SMSDispatcher.SmsTracker tracker, boolean retryUsingImsService) {
++        if (!SMSDispatcher.isSmsAccessEnabled(mContext)) {
++            Rlog.i(TAG, "OSverflow SMS access disabled; rejecting SMS retry");
++            tracker.onFailed(mContext, SmsManager.RESULT_ERROR_NO_SERVICE, NO_ERROR_CODE);
++            notifySmsSent(tracker, !retryUsingImsService,
++                    true /* isLastSmsPart */, false /* success */);
++            return;
++        }
++
+         String oldFormat = tracker.mFormat;
+         // If retryUsingImsService is true, newFormat will be IMS SMS format. Otherwise, newFormat
+         // will be based on voice technology.

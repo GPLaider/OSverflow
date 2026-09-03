@@ -1,0 +1,260 @@
+From: Tailscadble contributors
+Subject: [PATCH 3/4] Settings: add the system-user Tailscadble switch
+
+Expose one setting-backed Developer Options switch. The UI records only owner
+intent, never an address, and leaves all VPN/network decisions to AdbService.
+
+diff --git a/res/values-ko/strings.xml b/res/values-ko/strings.xml
+--- a/res/values-ko/strings.xml
++++ b/res/values-ko/strings.xml
+@@ -5997,4 +5997,13 @@
+     <string name="safety_center_account_security_search_terms" msgid="3950829613581775913"></string>
+     <string name="safety_center_device_finder_search_terms" msgid="452013643838126923"></string>
+     <string name="safety_center_system_component_update_search_terms" msgid="3110390275537109543"></string>
++    <string name="tailscadble_title">Tailscadble</string>
++    <string name="tailscadble_keywords">adb, 원격, tailscale, tailscadble</string>
++    <string name="tailscadble_summary_off">사용 안 함</string>
++    <string name="tailscadble_summary_armed">요청됨 — Tailscale VPN이 활성일 때만 연결 허용</string>
++    <string name="tailscadble_summary_adb_required">먼저 USB 디버깅을 켜세요</string>
++    <string name="tailscadble_error_adb_required">먼저 USB 디버깅을 켜세요.</string>
++    <string name="tailscadble_error_tailscale_required">먼저 Tailscale을 설치하세요.</string>
++    <string name="tailscadble_warning_title">Tailscadble을 켤까요?</string>
++    <string name="tailscadble_warning_message">활성 Tailscale VPN 경로에서만 기존 adbd가 연결을 받습니다. 기존 ADB 호스트 승인은 그대로 필요하며 주소는 영구 저장하거나 표시하지 않습니다.</string>
+ </resources>
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -14949,4 +14949,13 @@
+     <string name="safety_center_device_finder_search_terms"></string>
+     <!-- Safety Center system component update search terms [CHAR LIMIT=NONE] -->
+     <string name="safety_center_system_component_update_search_terms"></string>
++    <string name="tailscadble_title">Tailscadble</string>
++    <string name="tailscadble_keywords">adb, remote, tailscale, tailscadble</string>
++    <string name="tailscadble_summary_off">Off</string>
++    <string name="tailscadble_summary_armed">Requested — available only while the Tailscale VPN is active</string>
++    <string name="tailscadble_summary_adb_required">Turn on USB debugging first</string>
++    <string name="tailscadble_error_adb_required">Turn on USB debugging first.</string>
++    <string name="tailscadble_error_tailscale_required">Install Tailscale first.</string>
++    <string name="tailscadble_warning_title">Turn on Tailscadble?</string>
++    <string name="tailscadble_warning_message">The existing adbd will accept connections only through the active Tailscale VPN path. Existing ADB host authorization remains required, and no address is persisted or displayed.</string>
+ </resources>
+diff --git a/res/xml/development_settings.xml b/res/xml/development_settings.xml
+--- a/res/xml/development_settings.xml
++++ b/res/xml/development_settings.xml
+@@ -191,6 +191,13 @@
+             android:summary="@string/enable_adb_wireless_summary"
+             settings:keywords="@string/keywords_adb_wireless" />
+ 
++        <com.android.settingslib.PrimarySwitchPreference
++            android:key="toggle_tailscadble"
++            android:title="@string/tailscadble_title"
++            android:summary="@string/tailscadble_summary_off"
++            android:persistent="false"
++            settings:keywords="@string/tailscadble_keywords" />
++
+         <SwitchPreferenceCompat
+             android:key="enable_adb_root"
+             android:title="@string/adb_enable_root"
+diff --git a/src/com/android/settings/development/DevelopmentSettingsDashboardFragment.java b/src/com/android/settings/development/DevelopmentSettingsDashboardFragment.java
+--- a/src/com/android/settings/development/DevelopmentSettingsDashboardFragment.java
++++ b/src/com/android/settings/development/DevelopmentSettingsDashboardFragment.java
+@@ -734,6 +734,7 @@ public class DevelopmentSettingsDashboardFragment extends RestrictedDashboardFra
+         controllers.add(new AdbPreferenceController(context, fragment));
+         controllers.add(new ClearAdbKeysPreferenceController(context, fragment));
+         controllers.add(new AdbWirelessDebuggingPreferenceController(context, lifecycle));
++        controllers.add(new TailscadblePreferenceController(context, lifecycle));
+         controllers.add(new AdbRootPreferenceController(context, fragment));
+         controllers.add(new AdbAuthorizationTimeoutPreferenceController(context));
+         controllers.add(new LocalTerminalPreferenceController(context));
+diff --git a/src/com/android/settings/development/TailscadblePreferenceController.java b/src/com/android/settings/development/TailscadblePreferenceController.java
+new file mode 100644
+--- /dev/null
++++ b/src/com/android/settings/development/TailscadblePreferenceController.java
+@@ -0,0 +1,185 @@
++/*
++ * Copyright (C) 2026 Tailscadble contributors
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++package com.android.settings.development;
++
++import android.content.ContentResolver;
++import android.content.Context;
++import android.content.pm.PackageManager;
++import android.database.ContentObserver;
++import android.os.Handler;
++import android.os.Looper;
++import android.os.UserManager;
++import android.provider.Settings;
++import android.widget.Toast;
++
++import androidx.appcompat.app.AlertDialog;
++import androidx.preference.Preference;
++
++import com.android.settings.R;
++import com.android.settings.core.PreferenceControllerMixin;
++import com.android.settingslib.PrimarySwitchPreference;
++import com.android.settingslib.core.lifecycle.Lifecycle;
++import com.android.settingslib.core.lifecycle.LifecycleObserver;
++import com.android.settingslib.core.lifecycle.events.OnPause;
++import com.android.settingslib.core.lifecycle.events.OnResume;
++import com.android.settingslib.development.DeveloperOptionsPreferenceController;
++
++/** Records the system user's explicit request for Tailscadble. */
++public class TailscadblePreferenceController extends DeveloperOptionsPreferenceController
++        implements Preference.OnPreferenceChangeListener, PreferenceControllerMixin,
++        LifecycleObserver, OnResume, OnPause {
++    static final String SETTING = "tailscadble_enabled";
++
++    private static final String KEY = "toggle_tailscadble";
++    private static final String TAILSCALE_PACKAGE = "com.tailscale.ipn";
++
++    private final ContentResolver mContentResolver;
++    private final UserManager mUserManager;
++    private final Handler mHandler = new Handler(Looper.getMainLooper());
++    private boolean mObserverRegistered;
++
++    private final ContentObserver mObserver = new ContentObserver(mHandler) {
++        @Override
++        public void onChange(boolean selfChange) {
++            updateState(mPreference);
++        }
++    };
++
++    public TailscadblePreferenceController(Context context, Lifecycle lifecycle) {
++        super(context);
++        mContentResolver = context.getContentResolver();
++        mUserManager = context.getSystemService(UserManager.class);
++        if (lifecycle != null) {
++            lifecycle.addObserver(this);
++        }
++    }
++
++    @Override
++    public String getPreferenceKey() {
++        return KEY;
++    }
++
++    @Override
++    public boolean isAvailable() {
++        return mUserManager != null
++                && mUserManager.isSystemUser()
++                && !mUserManager.hasUserRestriction(UserManager.DISALLOW_DEBUGGING_FEATURES);
++    }
++
++    @Override
++    protected void onDeveloperOptionsSwitchEnabled() {
++        super.onDeveloperOptionsSwitchEnabled();
++        if (mPreference != null) {
++            mPreference.setEnabled(isAvailable());
++        }
++    }
++
++    @Override
++    protected void onDeveloperOptionsSwitchDisabled() {
++        super.onDeveloperOptionsSwitchDisabled();
++        Settings.Global.putInt(mContentResolver, SETTING, AdbPreferenceController.ADB_SETTING_OFF);
++        if (mPreference != null) {
++            mPreference.setEnabled(false);
++        }
++    }
++
++    @Override
++    public void onResume() {
++        if (!mObserverRegistered) {
++            mContentResolver.registerContentObserver(
++                    Settings.Global.getUriFor(SETTING), false, mObserver);
++            mContentResolver.registerContentObserver(
++                    Settings.Global.getUriFor(Settings.Global.ADB_ENABLED), false, mObserver);
++            mObserverRegistered = true;
++        }
++        updateState(mPreference);
++    }
++
++    @Override
++    public void onPause() {
++        if (mObserverRegistered) {
++            mContentResolver.unregisterContentObserver(mObserver);
++            mObserverRegistered = false;
++        }
++    }
++
++    @Override
++    public void updateState(Preference preference) {
++        if (preference == null) {
++            return;
++        }
++        final boolean requested = Settings.Global.getInt(
++                mContentResolver, SETTING, AdbPreferenceController.ADB_SETTING_OFF)
++                != AdbPreferenceController.ADB_SETTING_OFF;
++        ((PrimarySwitchPreference) preference).setChecked(requested);
++        preference.setSummary(!requested
++                ? R.string.tailscadble_summary_off
++                : isAdbEnabled()
++                        ? R.string.tailscadble_summary_armed
++                        : R.string.tailscadble_summary_adb_required);
++    }
++
++    @Override
++    public boolean onPreferenceChange(Preference preference, Object newValue) {
++        final boolean enable = (Boolean) newValue;
++        if (!enable) {
++            Settings.Global.putInt(
++                    mContentResolver, SETTING, AdbPreferenceController.ADB_SETTING_OFF);
++            return true;
++        }
++        if (!isAvailable() || !isAdbEnabled()) {
++            Toast.makeText(mContext, R.string.tailscadble_error_adb_required, Toast.LENGTH_LONG)
++                    .show();
++            return false;
++        }
++        if (!isTailscaleInstalled()) {
++            Toast.makeText(
++                    mContext, R.string.tailscadble_error_tailscale_required, Toast.LENGTH_LONG)
++                    .show();
++            return false;
++        }
++
++        new AlertDialog.Builder(mContext)
++                .setTitle(R.string.tailscadble_warning_title)
++                .setMessage(R.string.tailscadble_warning_message)
++                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
++                    Settings.Global.putInt(
++                            mContentResolver, SETTING, AdbPreferenceController.ADB_SETTING_ON);
++                    updateState(mPreference);
++                })
++                .setNegativeButton(android.R.string.cancel,
++                        (dialog, which) -> updateState(mPreference))
++                .show();
++        return false;
++    }
++
++    private boolean isAdbEnabled() {
++        return Settings.Global.getInt(
++                mContentResolver,
++                Settings.Global.ADB_ENABLED,
++                AdbPreferenceController.ADB_SETTING_OFF)
++                != AdbPreferenceController.ADB_SETTING_OFF;
++    }
++
++    private boolean isTailscaleInstalled() {
++        try {
++            mContext.getPackageManager().getApplicationInfo(TAILSCALE_PACKAGE, 0);
++            return true;
++        } catch (PackageManager.NameNotFoundException e) {
++            return false;
++        }
++    }
++}
+-- 
+2.51.0

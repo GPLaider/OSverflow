@@ -1,0 +1,3 @@
+<bool name="config_guestUserEphemeral">true</bool>
+<bool name="config_guestUserAllowEphemeralStateChange">false</bool>
+<bool name="config_guestUserAutoCreated">false</bool>

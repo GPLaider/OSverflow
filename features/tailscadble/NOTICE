@@ -1,0 +1,23 @@
+Tailscadble public patch set
+Copyright 2026 Tailscadble contributors
+
+This product includes patches derived from Android Open Source Project and
+LineageOS source files. The affected Android source projects carry Apache License
+2.0 notices. See LICENSE and preserve each upstream source-file header and project
+NOTICE when redistributing patched source or binaries.
+
+No Tailscale source code, binary, credential, key, network name, or node address is
+included. The integration only identifies the separately installed Android package
+`com.tailscale.ipn` and its active VPN interface. The Tailscale Android client is a
+separate project distributed under its own BSD-3-Clause license.
+
+Tailscale is a registered trademark of Tailscale Inc. Tailscadble is an unofficial,
+independent project and is not affiliated with or endorsed by Tailscale Inc. No
+Tailscale logo or trade dress is included.
+
+Upstream references:
+- https://source.android.com/
+- https://android.googlesource.com/
+- https://github.com/LineageOS
+- https://github.com/tailscale/tailscale-android
+- https://tailscale.com/community-projects

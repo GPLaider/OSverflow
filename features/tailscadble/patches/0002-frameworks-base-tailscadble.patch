@@ -1,0 +1,388 @@
+From: Tailscadble contributors
+Subject: [PATCH 2/4] frameworks: add fail-closed Tailscadble policy
+
+Keep one system-server policy owner for the listener. Require the system user,
+boot completion, USB debugging, lifecycle observers, the active Tailscale VPN
+package, a matching live VPN interface, and its CGNAT IPv4 address. Clear the
+feature on user switches, USB disable, or ADB authorization revoke. Never log
+the runtime address.
+
+diff --git a/services/core/java/com/android/server/adb/AdbService.java b/services/core/java/com/android/server/adb/AdbService.java
+--- a/services/core/java/com/android/server/adb/AdbService.java
++++ b/services/core/java/com/android/server/adb/AdbService.java
+@@ -19,7 +19,8 @@ import static com.android.internal.util.function.pooled.PooledLambda.obtainMessag
+ 
+ import android.annotation.NonNull;
+ import android.annotation.UserIdInt;
++import android.app.ActivityManager;
+ import android.content.ContentResolver;
+ import android.content.Context;
+ import android.content.pm.PackageManager;
+ import android.database.ContentObserver;
+@@ -31,7 +35,15 @@ import android.debug.IAdbManager;
+ import android.debug.IAdbTransport;
+ import android.debug.PairDevice;
+ import android.hardware.usb.UsbManager;
++import android.net.ConnectivityManager;
++import android.net.IpPrefix;
++import android.net.LinkAddress;
++import android.net.LinkProperties;
++import android.net.Network;
++import android.net.NetworkCapabilities;
++import android.net.NetworkRequest;
+ import android.net.Uri;
++import android.net.VpnManager;
+ import android.net.wifi.WifiManager;
+ import android.os.Binder;
+ import android.os.IBinder;
+@@ -39,6 +51,7 @@ import android.os.ParcelFileDescriptor;
+ import android.os.RemoteCallbackList;
+ import android.os.RemoteException;
+ import android.os.SystemProperties;
++import android.os.UserHandle;
+ import android.provider.Settings;
+ import android.service.adb.AdbServiceDumpProto;
+ import android.util.ArrayMap;
+@@ -46,6 +59,7 @@ import android.util.ArraySet;
+ import android.util.Slog;
+ import android.util.proto.ProtoOutputStream;
+ 
++import com.android.internal.net.VpnConfig;
+ import com.android.internal.util.DumpUtils;
+ import com.android.internal.util.IndentingPrintWriter;
+ import com.android.internal.util.Preconditions;
+@@ -75,6 +89,9 @@ public class AdbService extends IAdbManager.Stub {
+     /** Command to start native service. */
+     static final String CTL_STOP = "ctl.stop";
+ 
++    /** Command to restart native service. */
++    static final String CTL_RESTART = "ctl.restart";
++
+     private final RemoteCallbackList<IAdbCallback> mCallbacks = new RemoteCallbackList<>();
+ 
+     /** Manages the service lifecycle for {@code AdbService} in {@code SystemServer}. */
+@@ -101,7 +104,12 @@ public static class Lifecycle extends SystemService {
+                 FgThread.getHandler()
+                         .sendMessage(obtainMessage(AdbService::bootCompleted, mAdbService));
+             }
+         }
++
++        @Override
++        public void onUserSwitching(TargetUser from, TargetUser to) {
++            mAdbService.forceTailscadbleOff();
++        }
+     }
+ 
+     private class AdbManagerInternalImpl extends AdbManagerInternal {
+@@ -143,14 +146,18 @@ public class AdbService extends IAdbManager.Stub {
+-    private void registerContentObservers() {
++    private boolean registerContentObservers() {
+         try {
+             // register observer to listen for settings changes
+             mObserver = new AdbSettingsObserver();
+             mContentResolver.registerContentObserver(
+                     Settings.Global.getUriFor(Settings.Global.ADB_ENABLED), false, mObserver);
+             mContentResolver.registerContentObserver(
+                     Settings.Global.getUriFor(Settings.Global.ADB_WIFI_ENABLED), false, mObserver);
++            mContentResolver.registerContentObserver(
++                    Settings.Global.getUriFor(TAILSCADBLE_SETTING), false, mObserver);
++            return true;
+         } catch (Exception e) {
+             Slog.e(TAG, "Error in registerContentObservers", e);
++            return false;
+         }
+     }
+ 
+     private static boolean containsFunction(String functions, String function) {
+@@ -171,6 +190,7 @@ public class AdbService extends IAdbManager.Stub {
+     private class AdbSettingsObserver extends ContentObserver {
+         private final Uri mAdbUsbUri = Settings.Global.getUriFor(Settings.Global.ADB_ENABLED);
+         private final Uri mAdbWifiUri = Settings.Global.getUriFor(Settings.Global.ADB_WIFI_ENABLED);
++        private final Uri mTailscadbleUri = Settings.Global.getUriFor(TAILSCADBLE_SETTING);
+ 
+         AdbSettingsObserver() {
+             super(null);
+@@ -190,6 +210,8 @@ public class AdbService extends IAdbManager.Stub {
+                                         mContentResolver, Settings.Global.ADB_WIFI_ENABLED, 0)
+                                 > 0);
+                 setAdbEnabled(shouldEnable, AdbTransportType.WIFI);
++            } else if (mTailscadbleUri.equals(uri)) {
++                scheduleTailscadbleUpdate();
+             }
+         }
+     }
+@@ -208,11 +230,21 @@ public class AdbService extends IAdbManager.Stub {
+      */
+     private static final String WIFI_PERSISTENT_CONFIG_PROPERTY = "persist.adb.tls_server.enable";
+ 
++    private static final String TAILSCADBLE_SETTING = "tailscadble_enabled";
++    private static final String TAILSCADBLE_LISTEN_PROPERTY = "service.adb.listen_addrs";
++    private static final String TAILSCALE_PACKAGE = "com.tailscale.ipn";
++    private static final IpPrefix TAILSCALE_IPV4_PREFIX = new IpPrefix("100.64.0.0/10");
++    private static final int TAILSCADBLE_PORT = 5555;
++
+     private final Context mContext;
+     private final ContentResolver mContentResolver;
++    private final ConnectivityManager mConnectivityManager;
+     private final ArrayMap<IBinder, IAdbTransport> mTransports = new ArrayMap<>();
+ 
+     private boolean mIsAdbUsbEnabled;
+     private boolean mIsAdbWifiEnabled;
++    private boolean mIsTailscadbleEnabled;
++    private boolean mBootCompleted;
++    private boolean mTailscadbleLifecycleReady;
+     private final AdbDebuggingManager mDebuggingManager;
+ 
+@@ -221,9 +257,35 @@ public class AdbService extends IAdbManager.Stub {
++    private final ConnectivityManager.NetworkCallback mTailscadbleNetworkCallback =
++            new ConnectivityManager.NetworkCallback() {
++                @Override
++                public void onAvailable(Network network) {
++                    scheduleTailscadbleUpdate();
++                }
++
++                @Override
++                public void onLost(Network network) {
++                    scheduleTailscadbleUpdate();
++                }
++
++                @Override
++                public void onCapabilitiesChanged(
++                        Network network, NetworkCapabilities capabilities) {
++                    scheduleTailscadbleUpdate();
++                }
++
++                @Override
++                public void onLinkPropertiesChanged(Network network, LinkProperties properties) {
++                    scheduleTailscadbleUpdate();
++                }
++            };
++
+     private AdbService(Context context) {
+         mContext = context;
+         mContentResolver = context.getContentResolver();
++        mConnectivityManager = context.getSystemService(ConnectivityManager.class);
+         mDebuggingManager = new AdbDebuggingManager(context);
+ 
+-        registerContentObservers();
++        mTailscadbleLifecycleReady = registerContentObservers();
++        forceTailscadbleOff();
+         LocalServices.addService(AdbManagerInternal.class, new AdbManagerInternalImpl());
+     }
+ 
+@@ -247,6 +284,7 @@ public void systemReady() {
+                                 TestHarnessModeService.TEST_HARNESS_MODE_PROPERTY, false);
+         mIsAdbWifiEnabled = "1".equals(SystemProperties.get(WIFI_PERSISTENT_CONFIG_PROPERTY, "0"));
+ 
++        closeTailscadble(true);
+         // make sure the ADB_ENABLED setting value matches the current state
+         try {
+             Settings.Global.putInt(
+@@ -258,6 +337,23 @@ public class AdbService extends IAdbManager.Stub {
+             // If UserManager.DISALLOW_DEBUGGING_FEATURES is on, that this setting can't be changed.
+             Slog.d(TAG, "ADB_ENABLED is restricted.");
+         }
++
++        if (!mTailscadbleLifecycleReady) {
++            forceTailscadbleOff();
++            return;
++        }
++        try {
++            final NetworkRequest vpnRequest = new NetworkRequest.Builder()
++                    .clearCapabilities()
++                    .addTransportType(NetworkCapabilities.TRANSPORT_VPN)
++                    .build();
++            mConnectivityManager.registerNetworkCallback(
++                    vpnRequest, mTailscadbleNetworkCallback, FgThread.getHandler());
++        } catch (RuntimeException e) {
++            mTailscadbleLifecycleReady = false;
++            forceTailscadbleOff();
++            Slog.e(TAG, "Tailscadble lifecycle unavailable");
++        }
+     }
+ 
+     /**
+@@ -267,6 +369,8 @@ public class AdbService extends IAdbManager.Stub {
+         Slog.d(TAG, "boot completed");
+         mDebuggingManager.setAdbEnabled(mIsAdbUsbEnabled, AdbTransportType.USB);
+         mDebuggingManager.setAdbEnabled(mIsAdbWifiEnabled, AdbTransportType.WIFI);
++        mBootCompleted = true;
++        updateTailscadble();
+     }
+ 
+     @Override
+@@ -282,5 +386,6 @@ public class AdbService extends IAdbManager.Stub {
+     public void clearDebuggingKeys() {
+         mContext.enforceCallingOrSelfPermission(android.Manifest.permission.MANAGE_DEBUGGING, null);
++        forceTailscadbleOff();
+         mDebuggingManager.clearDebuggingKeys();
+     }
+ 
+@@ -390,11 +496,136 @@ public class AdbService extends IAdbManager.Stub {
+     }
+ 
+     private void stopAdbd() {
+-        if (!mIsAdbUsbEnabled && !mIsAdbWifiEnabled) {
++        if (!mIsAdbUsbEnabled && !mIsAdbWifiEnabled && !mIsTailscadbleEnabled) {
+             SystemProperties.set(CTL_STOP, ADBD);
+         }
+     }
+ 
++    private void scheduleTailscadbleUpdate() {
++        FgThread.getHandler().post(this::updateTailscadble);
++    }
++
++    private boolean clearTailscadbleRequest() {
++        try {
++            return Settings.Global.putInt(mContentResolver, TAILSCADBLE_SETTING, 0);
++        } catch (RuntimeException ignored) {
++            Slog.e(TAG, "Tailscadble request reset failed");
++            return false;
++        }
++    }
++
++    private void forceTailscadbleOff() {
++        if (!clearTailscadbleRequest()) {
++            mTailscadbleLifecycleReady = false;
++        }
++        closeTailscadble(true);
++    }
++
++    private void updateTailscadble() {
++        String address = null;
++        try {
++            final boolean requested = Settings.Global.getInt(
++                    mContentResolver, TAILSCADBLE_SETTING, 0) != 0;
++            if (requested
++                    && mBootCompleted
++                    && mTailscadbleLifecycleReady
++                    && mIsAdbUsbEnabled
++                    && ActivityManager.getCurrentUser() == UserHandle.USER_SYSTEM) {
++                address = findTailscaleAddress();
++            }
++        } catch (RuntimeException ignored) {
++            Slog.e(TAG, "Tailscadble policy evaluation failed");
++        }
++        if (address == null) {
++            closeTailscadble(false);
++            return;
++        }
++        openTailscadble("tcp:" + address + ":" + TAILSCADBLE_PORT);
++    }
++
++    private void openTailscadble(String listenSpec) {
++        try {
++            if (mIsTailscadbleEnabled
++                    && listenSpec.equals(SystemProperties.get(TAILSCADBLE_LISTEN_PROPERTY, ""))) {
++                return;
++            }
++            SystemProperties.set(TAILSCADBLE_LISTEN_PROPERTY, listenSpec);
++            SystemProperties.set(CTL_RESTART, ADBD);
++            mIsTailscadbleEnabled = true;
++            Slog.i(TAG, "Tailscadble active");
++        } catch (RuntimeException ignored) {
++            Slog.e(TAG, "Tailscadble activation failed");
++            closeTailscadble(true);
++        }
++    }
++
++    private void closeTailscadble(boolean forceAdbd) {
++        boolean hadListener = mIsTailscadbleEnabled;
++        try {
++            hadListener |= !SystemProperties.get(TAILSCADBLE_LISTEN_PROPERTY, "").isEmpty();
++        } catch (RuntimeException ignored) {
++            hadListener = true;
++        }
++        if (!forceAdbd && !hadListener) {
++            return;
++        }
++
++        mIsTailscadbleEnabled = false;
++        boolean propertyCleared = false;
++        try {
++            SystemProperties.set(TAILSCADBLE_LISTEN_PROPERTY, "");
++            propertyCleared = true;
++        } catch (RuntimeException ignored) {
++            Slog.e(TAG, "Tailscadble listener reset failed");
++        }
++        try {
++            if (propertyCleared && (mIsAdbUsbEnabled || mIsAdbWifiEnabled)) {
++                SystemProperties.set(CTL_RESTART, ADBD);
++            } else {
++                SystemProperties.set(CTL_STOP, ADBD);
++            }
++        } catch (RuntimeException ignored) {
++            Slog.e(TAG, "Tailscadble adbd shutdown failed");
++        }
++        if (hadListener) {
++            Slog.i(TAG, "Tailscadble closed");
++        }
++    }
++
++    private String findTailscaleAddress() {
++        try {
++            final VpnManager vpnManager = mContext.getSystemService(VpnManager.class);
++            final VpnConfig vpnConfig = vpnManager == null
++                    ? null : vpnManager.getVpnConfig(UserHandle.USER_SYSTEM);
++            if (vpnConfig == null || !TAILSCALE_PACKAGE.equals(vpnConfig.user)
++                    || vpnConfig.interfaze == null) {
++                return null;
++            }
++
++            for (Network network : mConnectivityManager.getAllNetworks()) {
++                final NetworkCapabilities capabilities =
++                        mConnectivityManager.getNetworkCapabilities(network);
++                if (capabilities == null
++                        || !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN)) {
++                    continue;
++                }
++                final LinkProperties properties = mConnectivityManager.getLinkProperties(network);
++                if (properties == null
++                        || !vpnConfig.interfaze.equals(properties.getInterfaceName())) {
++                    continue;
++                }
++                for (LinkAddress candidate : properties.getLinkAddresses()) {
++                    if (TAILSCALE_IPV4_PREFIX.contains(candidate.getAddress())) {
++                        return candidate.getAddress().getHostAddress();
++                    }
++                }
++            }
++        } catch (RuntimeException ignored) {
++            Slog.w(TAG, "Tailscadble cannot inspect the active VPN");
++        }
++        return null;
++    }
++
+     private WifiManager.MulticastLock mAdbMulticastLock = null;
+ 
+     private void acquireMulticastLock() {
+@@ -496,6 +673,15 @@ public class AdbService extends IAdbManager.Stub {
+ 
+         mDebuggingManager.setAdbEnabled(enable, transportType);
+ 
++        if (transportType == AdbTransportType.USB) {
++            if (!enable) {
++                // Re-enabling USB alone must not silently restore remote access.
++                forceTailscadbleOff();
++            } else {
++                updateTailscadble();
++            }
++        }
++
+         Slog.d(TAG, "Broadcasting enable = " + enable + ", type = " + transportType);
+         mCallbacks.broadcast(
+                 (callback) -> {
+diff --git a/services/core/java/com/android/server/connectivity/Vpn.java b/services/core/java/com/android/server/connectivity/Vpn.java
+--- a/services/core/java/com/android/server/connectivity/Vpn.java
++++ b/services/core/java/com/android/server/connectivity/Vpn.java
+@@ -2203,7 +2203,7 @@ public class Vpn {
+      * Return the configuration of the currently running VPN.
+      */
+     public synchronized VpnConfig getVpnConfig() {
+-        enforceControlPermission();
++        enforceControlPermissionOrInternalCaller();
+         // Constructor of VpnConfig cannot take a null parameter. Return null directly if mConfig is
+         // null
+         if (mConfig == null) return null;
+-- 
+2.51.0

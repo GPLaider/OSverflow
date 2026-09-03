@@ -1,0 +1,19 @@
+OSverflow source release candidate
+Copyright 2026 The OSverflow Project and contributors
+
+This repository contains independently authored code and patches to Android Open
+Source Project and LineageOS files. Patched upstream files retain their existing
+copyright and Apache License 2.0 notices. Each consumer must preserve the NOTICE
+and license material shipped by every upstream Android project it builds.
+
+Tailscadble interoperates with the separately installed Tailscale Android client
+but contains no Tailscale source, binary, credential, node identity, or key.
+Tailscale is a registered trademark of Tailscale Inc.; Tailscadble is unofficial
+and independent.
+
+CraftedG's public reference contains no GrapheneOS, VoltageOS, PlayIntegrityFork,
+TrickyStore, keybox, private key, certificate replacement, or service-verdict
+code. Its provenance and exclusions are documented beside the source.
+
+OSverflow is not affiliated with or endorsed by AOSP, LineageOS, GrapheneOS,
+Motorola, MediaTek, Google, F-Droid, or Tailscale.

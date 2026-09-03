@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "project": "OSverflow",
+  "device": {
+    "manufacturer": "Motorola",
+    "commercial_name": "Edge 40",
+    "codename": "lyriq",
+    "models": ["XT2303-2"]
+  },
+  "support_status": "release-candidate",
+  "android_version": 16,
+  "sdk": 36,
+  "required_stock_baseline": "V1TLS35.73-60-3-14",
+  "bootloader": {
+    "unlock_required": true,
+    "relocking_supported": false
+  },
+  "build": {
+    "type": "userdebug",
+    "framework_security_patch": "2026-06-01",
+    "vendor_security_patch": "2026-08-01"
+  },
+  "public_install_artifact": null,
+  "internal_rc1_sha256": "2bac3971baefa5aeb01595744d18ffb9648dd3f069866d39213d134e97f1a836"
+}

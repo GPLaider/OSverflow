@@ -1,0 +1,195 @@
+diff --git a/services/core/java/com/android/server/compat/overrides/AppCompatOverridesService.java b/services/core/java/com/android/server/compat/overrides/AppCompatOverridesService.java
+index 47b1c5449dc2..b90ea3782585 100644
+--- a/services/core/java/com/android/server/compat/overrides/AppCompatOverridesService.java
++++ b/services/core/java/com/android/server/compat/overrides/AppCompatOverridesService.java
+@@ -30,6 +30,7 @@ import static java.util.Collections.emptySet;
+ 
+ import android.annotation.NonNull;
+ import android.annotation.Nullable;
++import android.app.AlarmManager;
+ import android.app.compat.PackageOverride;
+ import android.content.BroadcastReceiver;
+ import android.content.Context;
+@@ -37,6 +38,9 @@ import android.content.Intent;
+ import android.content.IntentFilter;
+ import android.content.pm.ApplicationInfo;
+ import android.content.pm.PackageManager;
++import android.ext.compat.CompatibilityProfileConfig;
++import android.ext.compat.CompatibilityProfileConfig.Applicability;
++import android.ext.compat.CompatibilityProfileConfig.Profile;
+ import android.net.Uri;
+ import android.os.RemoteException;
+ import android.os.ServiceManager;
+@@ -54,8 +58,10 @@ import com.android.internal.compat.CompatibilityOverridesToRemoveConfig;
+ import com.android.internal.compat.IPlatformCompat;
+ import com.android.server.SystemService;
+ 
++import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Arrays;
++import java.util.Collections;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+@@ -82,6 +88,12 @@ public final class AppCompatOverridesService {
+     private final AppCompatOverridesParser mOverridesParser;
+     private final PackageReceiver mPackageReceiver;
+     private final List<DeviceConfigListener> mDeviceConfigListeners;
++    private List<Profile> mStaticProfiles = List.of();
++    @Nullable private AlarmManager mAlarmManager;
++    private final AlarmManager.OnAlarmListener mStaticProfileExpiryListener = () -> {
++        applyAllStaticProfiles();
++        scheduleStaticProfileExpiry();
++    };
+ 
+     private AppCompatOverridesService(Context context) {
+         this(context, IPlatformCompat.Stub.asInterface(
+@@ -115,6 +127,111 @@ public final class AppCompatOverridesService {
+         mPackageReceiver.register();
+     }
+ 
++    private void startStaticProfiles() {
++        try {
++            mStaticProfiles = CompatibilityProfileConfig.loadSystem();
++        } catch (IOException | IllegalArgumentException e) {
++            Slog.e(TAG, "Rejecting OSverflow compatibility profiles", e);
++            mStaticProfiles = List.of();
++        }
++        mAlarmManager = mContext.getSystemService(AlarmManager.class);
++        applyAllStaticProfiles();
++        scheduleStaticProfileExpiry();
++    }
++
++    private void applyAllStaticProfiles() {
++        Set<Long> deviceConfigOwnedIds = getAllDeviceConfigOwnedChangeIds();
++        for (Profile profile : mStaticProfiles) {
++            applyStaticProfile(profile, deviceConfigOwnedIds);
++        }
++    }
++
++    private void applyStaticProfile(Profile profile, Set<Long> deviceConfigOwnedIds) {
++        if (!Collections.disjoint(profile.ownedChangeIds(), deviceConfigOwnedIds)) {
++            Slog.e(TAG, "Rejecting OSverflow profile with DeviceConfig-owned change ID: "
++                    + profile.packageName());
++            removePackageOverrides(profile.packageName(), profile.ownedChangeIds());
++            return;
++        }
++
++        Map<Long, PackageOverride> overridesToAdd = emptyMap();
++        if (profile.getApplicability(mPackageManager, System.currentTimeMillis())
++                == Applicability.ACTIVE) {
++            Long versionCode = getVersionCodeOrNull(profile.packageName());
++            if (versionCode != null) {
++                overridesToAdd = mOverridesParser.parsePackageOverrides(
++                        profile.toPlatformConfigString(), profile.packageName(), versionCode,
++                        emptySet());
++            }
++        }
++
++        if (!overridesToAdd.keySet().equals(profile.overrides().keySet())) {
++            overridesToAdd = emptyMap();
++        }
++        putPackageOverrides(profile.packageName(), overridesToAdd);
++
++        Set<Long> overridesToRemove = new ArraySet<>(profile.ownedChangeIds());
++        overridesToRemove.removeAll(overridesToAdd.keySet());
++        removePackageOverrides(profile.packageName(), overridesToRemove);
++    }
++
++    private void applyStaticProfile(String packageName) {
++        Set<Long> deviceConfigOwnedIds = getAllDeviceConfigOwnedChangeIds();
++        for (Profile profile : mStaticProfiles) {
++            if (profile.packageName().equals(packageName)) {
++                applyStaticProfile(profile, deviceConfigOwnedIds);
++                return;
++            }
++        }
++    }
++
++    private void removeStaticProfileOverrides(String packageName) {
++        for (Profile profile : mStaticProfiles) {
++            if (profile.packageName().equals(packageName)) {
++                removePackageOverrides(packageName, profile.ownedChangeIds());
++                return;
++            }
++        }
++    }
++
++    private Set<Long> getAllDeviceConfigOwnedChangeIds() {
++        Set<Long> result = new ArraySet<>();
++        for (String namespace : mSupportedNamespaces) {
++            result.addAll(getOwnedChangeIds(namespace));
++        }
++        return result;
++    }
++
++    private void removeStaticOwnershipCollisions(Set<Long> deviceConfigOwnedIds) {
++        for (Profile profile : mStaticProfiles) {
++            Set<Long> collisions = new ArraySet<>(profile.ownedChangeIds());
++            collisions.retainAll(deviceConfigOwnedIds);
++            if (!collisions.isEmpty()) {
++                removePackageOverrides(profile.packageName(), profile.ownedChangeIds());
++            }
++        }
++    }
++
++    private void scheduleStaticProfileExpiry() {
++        AlarmManager alarmManager = mAlarmManager;
++        if (alarmManager == null) {
++            return;
++        }
++        alarmManager.cancel(mStaticProfileExpiryListener);
++
++        long now = System.currentTimeMillis();
++        long nextExpiry = Long.MAX_VALUE;
++        for (Profile profile : mStaticProfiles) {
++            if (!profile.retired() && profile.expiresAtMillis() > now) {
++                nextExpiry = Math.min(nextExpiry, profile.expiresAtMillis());
++            }
++        }
++        if (nextExpiry != Long.MAX_VALUE) {
++            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextExpiry, TAG,
++                    mContext.getMainExecutor(), null, mStaticProfileExpiryListener);
++        }
++    }
++
+     /**
+      * Same as {@link #applyOverrides(Properties, Set, Map)} except all properties of the given
+      * {@code namespace} are fetched via {@link DeviceConfig#getProperties}.
+@@ -337,6 +454,7 @@ public final class AppCompatOverridesService {
+             mService = new AppCompatOverridesService(getContext());
+             mService.registerDeviceConfigListeners();
+             mService.registerPackageReceiver();
++            mService.startStaticProfiles();
+         }
+     }
+ 
+@@ -366,6 +484,7 @@ public final class AppCompatOverridesService {
+                     FLAG_OWNED_CHANGE_IDS);
+ 
+             Set<Long> ownedChangeIds = getOwnedChangeIds(mNamespace);
++            removeStaticOwnershipCollisions(ownedChangeIds);
+             Map<String, Set<Long>> overridesToRemove = getOverridesToRemove(mNamespace,
+                     ownedChangeIds);
+             if (removeOverridesFlagChanged || ownedChangedIdsFlagChanged) {
+@@ -381,6 +500,7 @@ public final class AppCompatOverridesService {
+             } else {
+                 applyOverrides(properties, ownedChangeIds, overridesToRemove);
+             }
++            applyAllStaticProfiles();
+         }
+     }
+ 
+@@ -423,10 +543,12 @@ public final class AppCompatOverridesService {
+                 case ACTION_PACKAGE_ADDED:
+                 case ACTION_PACKAGE_CHANGED:
+                     addAllPackageOverrides(packageName);
++                    applyStaticProfile(packageName);
+                     break;
+                 case ACTION_PACKAGE_REMOVED:
+                     if (!isInstalledForAnyUser(packageName)) {
+                         removeAllPackageOverrides(packageName);
++                        removeStaticProfileOverrides(packageName);
+                     }
+                     break;
+                 default:

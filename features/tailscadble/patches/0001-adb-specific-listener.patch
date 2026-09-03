@@ -1,0 +1,170 @@
+From: Tailscadble contributors
+Subject: [PATCH 1/4] adb: support private numeric listeners without address logs
+
+Bind a non-Windows adbd socket to one numeric local address, suppress mDNS for
+host-bound listeners, and avoid printing the runtime address.
+
+diff --git a/daemon/main.cpp b/daemon/main.cpp
+--- a/daemon/main.cpp
++++ b/daemon/main.cpp
+@@ -187,25 +187,23 @@ static void drop_privileges() {
+ 
+ static void setup_adb(const std::vector<std::string>& addrs) {
+ #if defined(__ANDROID__)
+-    // Get the first valid port from addrs and register it with mDNS.
++    // Advertise only wildcard TCP listeners. Host-bound listeners stay private.
+     int port = -1;
+     std::string error;
+     for (const auto& addr : addrs) {
+-        port = get_host_socket_spec_port(addr, &error);
+-        if (port != -1) {
++        std::string hostname;
++        if (parse_tcp_socket_spec(addr, &hostname, &port, nullptr, &error) && hostname.empty()) {
+             break;
+         }
++        port = -1;
+     }
+-    if (port == -1) {
+-        port = DEFAULT_ADB_LOCAL_TRANSPORT_PORT;
++    if (port != -1) {
++        // TODO: Advertise every wildcard TCP socket, not just the first one.
++        register_adb_tcp_service(port);
+     }
+-    // TODO: We should advertise every TCP socket, not just the first one.
+-    //  Move this in server_socket_thread and make sure we only call it if the socket is "tcp:" (vs
+-    //  "vsock:").
+-    register_adb_tcp_service(port);
+ #endif
+     for (const auto& addr : addrs) {
+-        LOG(INFO) << "adbd listening on " << addr;
++        LOG(INFO) << "adbd listener starting";
+         init_transport_socket_server(addr);
+     }
+ }
+diff --git a/daemon/transport_socket_server.cpp b/daemon/transport_socket_server.cpp
+--- a/daemon/transport_socket_server.cpp
++++ b/daemon/transport_socket_server.cpp
+@@ -149,7 +149,7 @@ static void server_socket_thread(std::string_view addr) {
+ }
+ 
+ void init_transport_socket_server(const std::string& addr) {
+-    VLOG(TRANSPORT) << "Starting tcp server on '" << addr << "'";
++    VLOG(TRANSPORT) << "Starting tcp server";
+     std::thread(server_socket_thread, addr).detach();
+ }
+ 
+diff --git a/socket_spec.cpp b/socket_spec.cpp
+--- a/socket_spec.cpp
++++ b/socket_spec.cpp
+@@ -377,9 +377,12 @@ int socket_spec_listen(std::string_view spec, std::string* error, int* resolved_
+         } else if (hostname == "::1") {
+             result = network_loopback_server(port, SOCK_STREAM, error, false);
+         } else {
+-            // TODO: Implement me.
++#if ADB_WINDOWS
+             *error = "listening on specified hostname currently unsupported";
+             return -1;
++#else
++            result = network_address_server(hostname, port, SOCK_STREAM, error);
++#endif
+         }
+ 
+         if (result >= 0 && resolved_port) {
+diff --git a/socket_spec_test.cpp b/socket_spec_test.cpp
+--- a/socket_spec_test.cpp
++++ b/socket_spec_test.cpp
+@@ -224,6 +224,23 @@ TEST(socket_spec, socket_spec_listen_connect_tcp) {
+     EXPECT_NE(client_fd.get(), -1);
+ }
+ 
++TEST(socket_spec, socket_spec_listen_connect_tcp_specific_ipv4) {
++#if defined(_WIN32)
++    GTEST_SKIP() << "specific-address listeners are not supported on Windows";
++#else
++    std::string error, serial;
++    int port = 0;
++    unique_fd server_fd, client_fd;
++
++    server_fd.reset(socket_spec_listen("tcp:127.0.0.1:0", &error, &port));
++    ASSERT_NE(server_fd.get(), -1) << error;
++    ASSERT_GT(port, 0);
++    const std::string address = android::base::StringPrintf("tcp:127.0.0.1:%d", port);
++    EXPECT_TRUE(socket_spec_connect(&client_fd, address, &port, &serial, &error)) << error;
++    EXPECT_NE(client_fd.get(), -1);
++#endif
++}
++
+ TEST(socket_spec, socket_spec_listen_connect_vsock_success) {
+ #ifndef __linux__
+     GTEST_SKIP() << "vsock is only supported on Linux";
+diff --git a/sysdeps/network.h b/sysdeps/network.h
+--- a/sysdeps/network.h
++++ b/sysdeps/network.h
+@@ -18,5 +18,6 @@
+ 
+ #include <string>
+ 
++int network_address_server(const std::string& address, int port, int type, std::string* error);
+ int network_loopback_client(int port, int type, std::string* error);
+ int network_loopback_server(int port, int type, std::string* error, bool prefer_ipv4);
+diff --git a/sysdeps/posix/network.cpp b/sysdeps/posix/network.cpp
+--- a/sysdeps/posix/network.cpp
++++ b/sysdeps/posix/network.cpp
+@@ -21,6 +21,7 @@
+ #include <netinet/in.h>
+ #include <sys/socket.h>
+ 
++#include <memory>
+ #include <string>
+ 
+ #include <android-base/logging.h>
+@@ -34,6 +35,47 @@ static void set_error(std::string* error) {
+     }
+ }
+ 
++int network_address_server(const std::string& address, int port, int type, std::string* error) {
++    addrinfo hints = {};
++    hints.ai_family = AF_UNSPEC;
++    hints.ai_socktype = type;
++    hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV;
++
++    addrinfo* raw_addresses = nullptr;
++    const std::string service = std::to_string(port);
++    const int gai_error = getaddrinfo(address.c_str(), service.c_str(), &hints, &raw_addresses);
++    if (gai_error != 0) {
++        if (error) {
++            *error = android::base::StringPrintf("invalid numeric listen address: %s",
++                                                 gai_strerror(gai_error));
++        }
++        errno = EINVAL;
++        return -1;
++    }
++    std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> addresses(raw_addresses, freeaddrinfo);
++
++    for (addrinfo* current = addresses.get(); current != nullptr; current = current->ai_next) {
++        unique_fd server(socket(current->ai_family, current->ai_socktype, current->ai_protocol));
++        if (server == -1) {
++            continue;
++        }
++
++        int reuse = 1;
++        setsockopt(server.get(), SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse));
++        if (bind(server.get(), current->ai_addr, current->ai_addrlen) != 0) {
++            continue;
++        }
++        if ((type == SOCK_STREAM || type == SOCK_SEQPACKET) &&
++            listen(server.get(), SOMAXCONN) != 0) {
++            continue;
++        }
++        return server.release();
++    }
++
++    set_error(error);
++    return -1;
++}
++
+ static sockaddr* loopback_addr4(sockaddr_storage* addr, socklen_t* addrlen, int port) {
+     struct sockaddr_in* addr4 = reinterpret_cast<sockaddr_in*>(addr);
+     *addrlen = sizeof(*addr4);
+-- 
+2.51.0

@@ -1,0 +1,19 @@
+From: Tailscadble contributors
+Subject: [PATCH 4/4] sepolicy: label the exact-address adbd property
+
+Allow the existing system-server property type to carry a non-persistent exact
+listener specification. Existing neverallow rules retain the writer boundary.
+
+diff --git a/private/property_contexts b/private/property_contexts
+--- a/private/property_contexts
++++ b/private/property_contexts
+@@ -51,6 +51,7 @@ persist.simpleperf.profile_app_expiration_time  u:object_r:shell_prop:s0
+ security.lower_kptr_restrict u:object_r:lower_kptr_restrict_prop:s0
+ service.adb.root        u:object_r:shell_prop:s0
+ service.adb.tls.port    u:object_r:adbd_prop:s0
++service.adb.listen_addrs u:object_r:system_adbd_prop:s0 exact string
+ persist.adb.tradeinmode u:object_r:adbd_tradeinmode_prop:s0
+ persist.adb.test_tradeinmode u:object_r:adbd_tradeinmode_prop:s0
+ persist.adb.wifi.       u:object_r:adbd_prop:s0
+-- 
+2.51.0
