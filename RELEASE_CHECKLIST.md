@@ -25,6 +25,10 @@
       then reproduce the kernel build and complete source manifest.
 - [x] User-supplied stock-firmware extraction is hash-pinned and verified for
       exact `-3-10` and `-3-14` contracts without redistributing payloads.
+- [x] The complete 27-file stock IMS input contract is hash-pinned, extracted
+      locally, and bound to the production source gate.
+- [x] F-Droid Classic and GrapheneOS App Store inputs are pinned to exact
+      upstream APK and signer identities without redistributing the APKs.
 - [ ] Integrate and validate a current Android security bulletin without changing
       the date by property alone.
 - [ ] Produce and validate a production `user` build.

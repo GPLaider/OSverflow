@@ -22,3 +22,9 @@ with separate hash contracts for exact `-3-10` and `-3-14` Software Fix inputs.
 Contract selection binds the manifest, boot fingerprint, and build stamp, and a
 stamp from one contract is rejected by the other. This closes extraction and
 input identity only; clean installation and runtime acceptance remain open.
+
+The same pinned device-source commit also closes the 27-file stock IMS input
+contract and fetches exactly two unmodified, upstream-signed app clients:
+F-Droid Classic 1.23.2 and GrapheneOS App Store 36. Their package identity,
+version, size, APK hash, and signer-certificate hash are verified before a build.
+No proprietary IMS payload or APK is stored in either source repository.

@@ -8,7 +8,9 @@ The sanitized device integration is maintained separately in
 It pins independent input contracts for the frozen RC1 hardware source
 (`V1TLS35.73-60-3-10` / `40dcc-72d036`) and the first-install baseline under
 review (`V1TLS35.73-60-3-14` / `89e5f-45c91`). Extraction is verified for both;
-physical first-install acceptance remains a release blocker.
+the complete 27-file Motorola/MediaTek IMS input contract and the exact
+upstream-signed F-Droid Classic and GrapheneOS App Store inputs are also pinned
+and CI-verified. Physical first-install acceptance remains a release blocker.
 
 The public GKI identity and five matching Motorola kernel-source repositories,
 including Lyriq DTS and hardware drivers, are pinned in the device repository.
