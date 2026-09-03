@@ -22,7 +22,8 @@ and proprietary redistribution review remain open.
 | [Security Suite 0/5/6/7/8](features/security-suite-05678/README.md) | mixed export | Verified-update model, USB restriction reuse, inactivity reboot, Disposable Space, compatibility profiles |
 
 See [feature status](docs/FEATURES.md), [release model](docs/RELEASE_MODEL.md),
-and [Lyriq support](devices/motorola/lyriq/README.md) before reusing anything.
+[license audit](docs/LICENSE_AUDIT.md), and
+[Lyriq support](devices/motorola/lyriq/README.md) before reusing anything.
 
 ## Verify this source export
 

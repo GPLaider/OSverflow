@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 Tailscadble contributors
+# SPDX-License-Identifier: Apache-2.0
+
 """Host-only structural, state-machine, secret, and patch-application checks."""
 
 from __future__ import annotations

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-FileCopyrightText: 2026 The OSverflow Project
+# SPDX-License-Identifier: Apache-2.0
+
 from __future__ import annotations
 
 import json
@@ -15,6 +18,7 @@ REQUIRED = (
     "README.md",
     "LICENSE",
     "NOTICE",
+    "docs/LICENSE_AUDIT.md",
     "SECURITY.md",
     "RELEASE_CHECKLIST.md",
     "devices/motorola/lyriq/support.json",
@@ -24,6 +28,20 @@ REQUIRED = (
     "features/privacy-lock/patches/0001-frameworks-base-privacy-lock.patch",
     "features/cellular-service-controls/patches/0001-telephony-sms-access-gate.patch",
     "features/cellular-service-controls/patches/0002-teleservice-call-access-gate.patch",
+)
+
+SPDX_REQUIRED = (
+    "verify_release.py",
+    "tools/verify_android_patches.sh",
+    "features/tailscadble/verify_export.py",
+    "features/craftedg/src/org/osverflow/craftedg/scopedkeystore/ScopedKeyStore.java",
+    "features/craftedg/test/org/osverflow/craftedg/scopedkeystore/ScopedKeyStoreTest.java",
+    "features/cellular-service-controls/reference/packages/apps/Settings/src/com/android/settings/privacy/CellularServiceToggleController.java",
+    "features/security-suite-05678/reference/frameworks/base/core/java/android/ext/compat/CompatibilityProfileConfig.java",
+    "features/security-suite-05678/reference/frameworks/base/services/core/java/com/android/server/ext/InactivityRebootService.java",
+    "features/security-suite-05678/reference/frameworks/base/services/tests/servicestests/src/com/android/server/compat/overrides/CompatibilityProfileConfigTest.java",
+    "features/security-suite-05678/reference/frameworks/base/services/tests/servicestests/src/com/android/server/ext/InactivityRebootServiceTest.java",
+    "features/security-suite-05678/reference/packages/apps/Settings/src/com/android/settings/applications/CompatibilityProfilesFragment.java",
 )
 
 FORBIDDEN_SUFFIXES = {
@@ -93,6 +111,13 @@ def verify_device_metadata() -> None:
     assert support["public_install_artifact"] is None
 
 
+def verify_spdx() -> None:
+    for relative in SPDX_REQUIRED:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        if "SPDX-License-Identifier: Apache-2.0" not in text:
+            raise SystemExit(f"missing Apache-2.0 SPDX identifier: {relative}")
+
+
 def verify_tailscadble() -> None:
     output = run(sys.executable, "verify_export.py", cwd=ROOT / "features/tailscadble")
     if "TAILSCADBLE_EXPORT_OK" not in output:
@@ -122,6 +147,7 @@ def verify_craftedg() -> None:
 def main() -> None:
     verify_tree()
     verify_device_metadata()
+    verify_spdx()
     verify_tailscadble()
     verify_craftedg()
     print("OSVERFLOW_RELEASE_SOURCE_OK")

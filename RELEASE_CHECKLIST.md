@@ -9,7 +9,7 @@
 - [x] Secret/binary/path scan passes on tracked candidates.
 - [ ] Repository visibility and public description selected by the maintainer.
 - [ ] Remaining reference-only integrations converted to clean replayable commits.
-- [ ] Complete SPDX/NOTICE review performed on those final commits.
+- [x] Current source-RC SPDX/NOTICE review completed and enforced by the verifier.
 
 ## Installable Lyriq release — additional blockers
 
