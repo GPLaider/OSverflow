@@ -36,6 +36,8 @@
       upstream APK and signer identities without redistributing the APKs.
 - [ ] Integrate and validate a current Android security bulletin without changing
       the date by property alone.
+- [x] Preflight the private production signer map for every APK role and every
+      signable APEX container/payload key while preserving upstream-signed APKs.
 - [ ] Produce and validate a production `user` build.
 - [ ] Qualify a clean first install from the declared Motorola stock baseline on
       the spare XT2303-2, including recovery and rollback.
