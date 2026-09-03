@@ -10,6 +10,8 @@ surface required by the stock IMS stack, and prevents duplicate vendor library
 variants already supplied by the stock vendor image.
 
 Every patch is bound to the exact project base and SHA-256 in `manifest.json`.
+The Lyriq local manifest pins every patched Android project to those verified
+bases instead of relying on moving Lineage branch tips.
 `build/soong` and `vendor/lineage` workspace workarounds are intentionally not
 included because they are not part of the Lyriq product contract.
 

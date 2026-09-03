@@ -270,6 +270,40 @@ def verify_lyriq_platform_support() -> None:
     }:
         raise SystemExit("unexpected Lyriq local-manifest project pins")
 
+    extensions = {
+        item.get("path"): (item.get("name"), item.get("revision"))
+        for item in root.findall("extend-project")
+    }
+    if extensions != {
+        "frameworks/base": ("LineageOS/android_frameworks_base", "aaa4284f7e061771afb58c789924397111487e62"),
+        "packages/apps/Settings": ("LineageOS/android_packages_apps_Settings", "adf61c13902a2789c965e6d74de5c466f5603b55"),
+        "packages/apps/LineageParts": ("LineageOS/android_packages_apps_LineageParts", "df5dd9d53b01553168fd9c57e5c6b8bc8b4550c7"),
+        "frameworks/opt/telephony": ("LineageOS/android_frameworks_opt_telephony", "21e2e9fc3cf0992bd91863aa33784ec5b24a806a"),
+        "packages/services/Telephony": ("LineageOS/android_packages_services_Telephony", "95e95093d0e9cca76b86906d414a7da6b95d45fe"),
+        "art": ("platform/art", "1690c6912a7972c9e62c39b48c706de9b8b18b4a"),
+        "bionic": ("LineageOS/android_bionic", "7ad2441de12bf7b5dc0055e0a940583d80fe104b"),
+        "frameworks/native": ("LineageOS/android_frameworks_native", "9a9d8be6865c1d6ebd10321375b082314de5ecf6"),
+        "libcore": ("platform/libcore", "1c599b67bcd3de5c50c79d0622e40b6de99b4cb4"),
+        "packages/modules/AppSearch": ("platform/packages/modules/AppSearch", "66fdb746655f01346649c34d380faf5dad593b98"),
+        "packages/modules/Bluetooth": ("LineageOS/android_packages_modules_Bluetooth", "b5d4b73e1122a714c3c5223b9932c7b733690c5d"),
+        "packages/modules/ConfigInfrastructure": ("platform/packages/modules/ConfigInfrastructure", "0c59a9196a09ef1f02571d10525e2cb1d2b8fc53"),
+        "packages/modules/Connectivity": ("LineageOS/android_packages_modules_Connectivity", "c9f3e7795256bd4a3f99d02e604e24fd1552c2b3"),
+        "packages/modules/Nfc": ("LineageOS/android_packages_modules_Nfc", "393ad5d17936a27b241f2796ff58f877ee9062aa"),
+        "packages/modules/Permission": ("LineageOS/android_packages_modules_Permission", "ee30155a8872cd022b5b7fb1983fdcf09e752723"),
+        "packages/modules/StatsD": ("platform/packages/modules/StatsD", "aae39057403d4538cb56c856b880fd02d5765a1e"),
+        "packages/providers/DownloadProvider": ("LineageOS/android_packages_providers_DownloadProvider", "6d2a304dc8237b2da9910799380636fe5b1f3970"),
+        "system/tools/aidl": ("platform/system/tools/aidl", "3747384b876442e7ea0c355fe5adc75b29362833"),
+        "packages/modules/adb": ("LineageOS/android_packages_modules_adb", "262cc9ada912c17f30f3130ae22e8012be4e10fe"),
+        "system/sepolicy": ("LineageOS/android_system_sepolicy", "885cc500f6078a766d1f6def5ce4c06c55841773"),
+        "build/make": ("LineageOS/android_build", "5a841be38fec92de9a8a408cf5812ca748ccc02e"),
+        "device/lineage/sepolicy": ("LineageOS/android_device_lineage_sepolicy", "c6e972cf4ff9bd472052b29cf8eae7bc3e70d378"),
+        "external/selinux": ("platform/external/selinux", "085c131ad1b984bfa8ffdafee7a976e9d89f403c"),
+        "packages/modules/Telephony": ("platform/packages/modules/Telephony", "6175c04a2cb3254455c58c9c653dc36a8a7e6dac"),
+        "external/dng_sdk": ("LineageOS/android_external_dng_sdk", "60de57ba9f18dd6366914ad74580063fe102c87c"),
+        "external/libjxl": ("LineageOS/android_external_libjxl", "4365ed52860edc6898277200c9bb41971f005e11"),
+    }:
+        raise SystemExit("unexpected Lyriq Android project anchor pins")
+
 
 def verify_spdx() -> None:
     for relative in SPDX_REQUIRED:

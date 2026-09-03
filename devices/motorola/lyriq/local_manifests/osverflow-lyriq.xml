@@ -5,6 +5,33 @@
   <remote name="osverflow-github" fetch="https://github.com/" />
   <remote name="osverflow-aosp" fetch="https://android.googlesource.com/" />
 
+  <extend-project name="LineageOS/android_frameworks_base" path="frameworks/base" revision="aaa4284f7e061771afb58c789924397111487e62" />
+  <extend-project name="LineageOS/android_packages_apps_Settings" path="packages/apps/Settings" revision="adf61c13902a2789c965e6d74de5c466f5603b55" />
+  <extend-project name="LineageOS/android_packages_apps_LineageParts" path="packages/apps/LineageParts" revision="df5dd9d53b01553168fd9c57e5c6b8bc8b4550c7" />
+  <extend-project name="LineageOS/android_frameworks_opt_telephony" path="frameworks/opt/telephony" revision="21e2e9fc3cf0992bd91863aa33784ec5b24a806a" />
+  <extend-project name="LineageOS/android_packages_services_Telephony" path="packages/services/Telephony" revision="95e95093d0e9cca76b86906d414a7da6b95d45fe" />
+  <extend-project name="platform/art" path="art" revision="1690c6912a7972c9e62c39b48c706de9b8b18b4a" />
+  <extend-project name="LineageOS/android_bionic" path="bionic" revision="7ad2441de12bf7b5dc0055e0a940583d80fe104b" />
+  <extend-project name="LineageOS/android_frameworks_native" path="frameworks/native" revision="9a9d8be6865c1d6ebd10321375b082314de5ecf6" />
+  <extend-project name="platform/libcore" path="libcore" revision="1c599b67bcd3de5c50c79d0622e40b6de99b4cb4" />
+  <extend-project name="platform/packages/modules/AppSearch" path="packages/modules/AppSearch" revision="66fdb746655f01346649c34d380faf5dad593b98" />
+  <extend-project name="LineageOS/android_packages_modules_Bluetooth" path="packages/modules/Bluetooth" revision="b5d4b73e1122a714c3c5223b9932c7b733690c5d" />
+  <extend-project name="platform/packages/modules/ConfigInfrastructure" path="packages/modules/ConfigInfrastructure" revision="0c59a9196a09ef1f02571d10525e2cb1d2b8fc53" />
+  <extend-project name="LineageOS/android_packages_modules_Connectivity" path="packages/modules/Connectivity" revision="c9f3e7795256bd4a3f99d02e604e24fd1552c2b3" />
+  <extend-project name="LineageOS/android_packages_modules_Nfc" path="packages/modules/Nfc" revision="393ad5d17936a27b241f2796ff58f877ee9062aa" />
+  <extend-project name="LineageOS/android_packages_modules_Permission" path="packages/modules/Permission" revision="ee30155a8872cd022b5b7fb1983fdcf09e752723" />
+  <extend-project name="platform/packages/modules/StatsD" path="packages/modules/StatsD" revision="aae39057403d4538cb56c856b880fd02d5765a1e" />
+  <extend-project name="LineageOS/android_packages_providers_DownloadProvider" path="packages/providers/DownloadProvider" revision="6d2a304dc8237b2da9910799380636fe5b1f3970" />
+  <extend-project name="platform/system/tools/aidl" path="system/tools/aidl" revision="3747384b876442e7ea0c355fe5adc75b29362833" />
+  <extend-project name="LineageOS/android_packages_modules_adb" path="packages/modules/adb" revision="262cc9ada912c17f30f3130ae22e8012be4e10fe" />
+  <extend-project name="LineageOS/android_system_sepolicy" path="system/sepolicy" revision="885cc500f6078a766d1f6def5ce4c06c55841773" />
+  <extend-project name="LineageOS/android_build" path="build/make" revision="5a841be38fec92de9a8a408cf5812ca748ccc02e" />
+  <extend-project name="LineageOS/android_device_lineage_sepolicy" path="device/lineage/sepolicy" revision="c6e972cf4ff9bd472052b29cf8eae7bc3e70d378" />
+  <extend-project name="platform/external/selinux" path="external/selinux" revision="085c131ad1b984bfa8ffdafee7a976e9d89f403c" />
+  <extend-project name="platform/packages/modules/Telephony" path="packages/modules/Telephony" revision="6175c04a2cb3254455c58c9c653dc36a8a7e6dac" />
+  <extend-project name="LineageOS/android_external_dng_sdk" path="external/dng_sdk" revision="60de57ba9f18dd6366914ad74580063fe102c87c" />
+  <extend-project name="LineageOS/android_external_libjxl" path="external/libjxl" revision="4365ed52860edc6898277200c9bb41971f005e11" />
+
   <project name="GPLaider/android_device_motorola_lyriq"
            path="device/motorola/lyriq"
            remote="osverflow-github"
