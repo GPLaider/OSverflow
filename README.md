@@ -51,6 +51,25 @@ tools/verify_android_patches.sh <android-source-root>
 
 Expected final line: `OSVERFLOW_ANDROID_PATCHES_OK`.
 
+After that dry-run succeeds on a clean checkout, apply the identical verified
+series in place with:
+
+```text
+tools/verify_android_patches.sh --apply <android-source-root>
+```
+
+This refuses dirty project inputs, stages every patch, and accepts only the
+expected 27 modified Android projects. Expected final line:
+`OSVERFLOW_ANDROID_PATCHES_APPLIED_OK`.
+
+The same exact-tree postcondition can be rerun later without modifying source:
+
+```text
+tools/verify_android_patches.sh --check-applied <android-source-root>
+```
+
+Expected final line: `OSVERFLOW_ANDROID_PATCHES_MATCH_OK`.
+
 ## Current Lyriq binary anchor
 
 - Product: OSverflow 16 RC1

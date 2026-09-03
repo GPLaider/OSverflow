@@ -30,6 +30,7 @@ version, size, APK hash, and signer-certificate hash are verified before a build
 No proprietary IMS payload or APK is stored in either source repository.
 
 For maintainers, `local_manifests/osverflow-lyriq.xml` pins the device tree,
-GmsCompat inputs, and Calendar checkout. The separate platform-support manifest
-pins the six Android project patches needed before building. These are source
+GmsCompat inputs, both AppCompatConfig source inputs, and every patched Android
+project. Run `tools/verify_android_patches.sh --apply <android-source-root>` from
+the OSverflow checkout to apply the verified patch series. These are source
 inputs, not installation instructions or proof of a signed image.

@@ -4,13 +4,34 @@
 
 set -euo pipefail
 
-if [[ $# -ne 1 ]]; then
-  printf 'usage: %s <android-source-root>\n' "$0" >&2
+mode=verify
+if [[ $# -eq 2 && $1 == --apply ]]; then
+  mode=apply
+  shift
+elif [[ $# -eq 2 && $1 == --check-applied ]]; then
+  mode=check-applied
+  shift
+elif [[ $# -ne 1 || $1 == --* ]]; then
+  printf 'usage: %s [--apply|--check-applied] <android-source-root>\n' "$0" >&2
   exit 2
 fi
 
 source_root=${1%/}
 repo_root=$(cd "$(dirname "$0")/.." && pwd)
+
+[[ -d $source_root ]]
+if [[ $mode != verify ]]; then
+  [[ -x $source_root/.repo/repo/repo ]]
+fi
+if [[ $mode == apply ]]; then
+  current_dirty=$(cd "$source_root" && .repo/repo/repo forall -c \
+    'if ! git diff --quiet || ! git diff --cached --quiet || test -n "$(git ls-files --others --exclude-standard)"; then printf "%s\n" "$REPO_PATH"; fi' \
+    | sort)
+  if [[ -n $current_dirty ]]; then
+    printf 'refusing to apply to a dirty Android checkout:\n%s\n' "$current_dirty" >&2
+    exit 1
+  fi
+fi
 
 check_head() {
   local project=$1 expected=$2
@@ -39,10 +60,36 @@ check_series() {
     git -C "$clone" -c user.name=OSverflow -c user.email=noreply@osverflow.invalid \
       commit --quiet -m "verify $patch"
   done
+
+  if [[ $mode != verify ]]; then
+    local target="$source_root/$project"
+    local expected_tree actual_tree
+    expected_tree=$(git -C "$clone" write-tree)
+    if [[ $mode == apply ]]; then
+      if [[ -n $(git -C "$target" status --porcelain) ]]; then
+        printf 'refusing to apply to dirty project: %s\n' "$project" >&2
+        exit 1
+      fi
+      for patch in "$@"; do
+        git -C "$target" apply --index "$repo_root/$patch"
+      done
+    fi
+    git -C "$target" diff --cached --check
+    if git -C "$target" diff --cached --quiet; then
+      printf 'missing applied patch series: %s\n' "$project" >&2
+      exit 1
+    fi
+    git -C "$target" diff --quiet
+    [[ -z $(git -C "$target" ls-files --others --exclude-standard) ]]
+    actual_tree=$(git -C "$target" write-tree)
+    if [[ $actual_tree != "$expected_tree" ]]; then
+      printf 'applied tree mismatch: %s\n' "$project" >&2
+      exit 1
+    fi
+  fi
 }
 
-python3 "$repo_root/features/tailscadble/verify_export.py" \
-  --source-root "$source_root"
+python3 "$repo_root/features/tailscadble/verify_export.py"
 
 check_head frameworks/base aaa4284f7e061771afb58c789924397111487e62
 check_head packages/apps/Settings adf61c13902a2789c965e6d74de5c466f5603b55
@@ -121,4 +168,26 @@ check_series external/dng_sdk \
 check_series external/libjxl \
   features/lyriq-platform-support/patches/0006-libjxl-avoid-vendor-variant.patch
 
-printf '%s\n' OSVERFLOW_ANDROID_PATCHES_OK
+if [[ $mode != verify ]]; then
+  expected=$(printf '%s\n' \
+    art bionic build/make device/lineage/sepolicy external/dng_sdk \
+    external/libjxl external/selinux frameworks/base frameworks/native \
+    frameworks/opt/telephony libcore packages/apps/GmsCompat \
+    packages/apps/LineageParts packages/apps/Settings packages/modules/AppSearch \
+    packages/modules/Bluetooth packages/modules/ConfigInfrastructure \
+    packages/modules/Connectivity packages/modules/Nfc packages/modules/Permission \
+    packages/modules/StatsD packages/modules/Telephony packages/modules/adb \
+    packages/providers/DownloadProvider packages/services/Telephony system/sepolicy \
+    system/tools/aidl | sort)
+  actual=$(cd "$source_root" && .repo/repo/repo forall -c \
+    'if ! git diff --quiet || ! git diff --cached --quiet || test -n "$(git ls-files --others --exclude-standard)"; then printf "%s\n" "$REPO_PATH"; fi' \
+    | sort)
+  [[ $actual == "$expected" ]]
+  if [[ $mode == apply ]]; then
+    printf '%s\n' OSVERFLOW_ANDROID_PATCHES_APPLIED_OK
+  else
+    printf '%s\n' OSVERFLOW_ANDROID_PATCHES_MATCH_OK
+  fi
+else
+  printf '%s\n' OSVERFLOW_ANDROID_PATCHES_OK
+fi

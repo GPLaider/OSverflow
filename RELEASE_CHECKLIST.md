@@ -21,7 +21,8 @@
 ## Installable Lyriq release — additional blockers
 
 - [x] Package the accepted source deltas as clean, exact-anchor patchsets.
-- [ ] Reconstruct those patchsets in a separate clean Android checkout.
+- [x] Reconstruct those patchsets in a separate clean Android checkout and pass
+      the `osverflow_lyriq-bp4a-user` Soong/Make graph preflight.
 - [x] Pin the exact public GKI identity and five matching Motorola kernel-source
       repositories, including Lyriq DTS and hardware drivers.
 - [ ] Resolve the vendor-module source prefix and external-module revisions,
