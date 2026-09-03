@@ -143,7 +143,7 @@ def verify_device_metadata() -> None:
         "V1TLS35.73-60-3-14/89e5f-45c91",
     ]
     device_source_repository = "https://github.com/GPLaider/android_device_motorola_lyriq"
-    device_source_commit = "5f0f6d681c22828668d59666740a9f3d7be9d6c0"
+    device_source_commit = "8a9a659c602842ba32fe4a7890900035a2083167"
     assert support["device_source_repository"] == device_source_repository
     assert support["device_source_commit"] == device_source_commit
     assert support["stock_input_extractor"] == (
@@ -251,7 +251,7 @@ def verify_lyriq_platform_support() -> None:
         "device/motorola/lyriq": (
             "GPLaider/android_device_motorola_lyriq",
             "osverflow-github",
-            "5f0f6d681c22828668d59666740a9f3d7be9d6c0",
+            "8a9a659c602842ba32fe4a7890900035a2083167",
         ),
         "packages/apps/GmsCompat": (
             "VoltageOS/packages_apps_GmsCompat",
