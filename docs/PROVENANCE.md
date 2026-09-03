@@ -9,11 +9,12 @@ future public device build must either have a documented right to redistribute
 each proprietary payload or provide a reproducible extractor that consumes the
 user's legally obtained stock firmware.
 
-The sanitized Lyriq integration and its hash-only local-input contract live in
+The sanitized Lyriq integration and its hash-only local-input contracts live in
 [`android_device_motorola_lyriq`](https://github.com/GPLaider/android_device_motorola_lyriq).
 It contains no proprietary payload and does not claim exact kernel-source closure.
-Its extractor was accepted against the exact `V1TLS35.73-60-3-10` Software Fix
-package and rejects other builds before creating output.
+Its extractor was accepted against exact `V1TLS35.73-60-3-10` and
+`V1TLS35.73-60-3-14` Software Fix packages and rejects other builds before
+creating output.
 
 Feature directories contain their own source anchors and attribution where the
 boundary differs. Branding never erases upstream authorship, copyright, license,

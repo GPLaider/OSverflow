@@ -12,8 +12,13 @@
   "sdk": 36,
   "required_stock_baseline": "V1TLS35.73-60-3-14",
   "hardware_prebuilt_source_build": "V1TLS35.73-60-3-10/40dcc-72d036",
+  "stock_input_contracts": [
+    "V1TLS35.73-60-3-10/40dcc-72d036",
+    "V1TLS35.73-60-3-14/89e5f-45c91"
+  ],
   "device_source_repository": "https://github.com/GPLaider/android_device_motorola_lyriq",
-  "stock_input_extractor": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/main/tools/extract_stock.py",
+  "device_source_commit": "21158bf3a3590c3bf0fa90c59585a5eaa91d1d77",
+  "stock_input_extractor": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/21158bf3a3590c3bf0fa90c59585a5eaa91d1d77/tools/extract_stock.py",
   "bootloader": {
     "unlock_required": true,
     "relocking_supported": false

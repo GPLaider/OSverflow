@@ -18,5 +18,7 @@ that cross-version firmware contract instead of assuming the two baselines are
 interchangeable.
 
 The device-source repository now contains a verified, non-downloading extractor
-for that exact `-3-10` input contract. It rejects `-3-14` rather than silently
-mixing firmware; support for the declared installation baseline remains open.
+with separate hash contracts for exact `-3-10` and `-3-14` Software Fix inputs.
+Contract selection binds the manifest, boot fingerprint, and build stamp, and a
+stamp from one contract is rejected by the other. This closes extraction and
+input identity only; clean installation and runtime acceptance remain open.

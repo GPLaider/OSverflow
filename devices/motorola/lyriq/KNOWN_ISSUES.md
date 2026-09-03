@@ -5,8 +5,8 @@
 - Public first installation and bootloader relocking are unsupported.
 - Only XT2303-2 on `V1TLS35.73-60-3-14` is in scope.
 - The frozen RC1 hardware prebuilts come from
-  `V1TLS35.73-60-3-10` / `40dcc-72d036`; public first-install compatibility with
-  the declared `V1TLS35.73-60-3-14` baseline is not yet qualified.
+  `V1TLS35.73-60-3-10` / `40dcc-72d036`. Exact `V1TLS35.73-60-3-14` extraction
+  is hash-pinned, but public clean-install compatibility is not yet qualified.
 - eSIM is excluded; no working EID/eUICC path was established.
 - LG U+ registration, data, calling, and messaging were accepted. A KT-network
   MVNO registered and obtained data, but its IMS call path was not accepted.

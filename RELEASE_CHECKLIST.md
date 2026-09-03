@@ -18,9 +18,8 @@
 
 - [ ] Reconstruct the accepted source as clean per-project Git commits.
 - [ ] Publish the corresponding kernel source and complete source manifest.
-- [ ] Finish the user-supplied stock-firmware path: exact `-3-10` extraction is
-      reproducible and hash-verified, but the declared `-3-14` installation
-      baseline still needs a pinned contract or a standardized full firmware set.
+- [x] User-supplied stock-firmware extraction is hash-pinned and verified for
+      exact `-3-10` and `-3-14` contracts without redistributing payloads.
 - [ ] Integrate and validate a current Android security bulletin without changing
       the date by property alone.
 - [ ] Produce and validate a production `user` build.

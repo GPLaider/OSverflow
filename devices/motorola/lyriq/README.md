@@ -5,9 +5,10 @@ firmware baseline `V1TLS35.73-60-3-14` and an unlocked bootloader.
 
 The sanitized device integration is maintained separately in
 [`android_device_motorola_lyriq`](https://github.com/GPLaider/android_device_motorola_lyriq).
-Its frozen RC1 hardware-prebuilt contract is
-`V1TLS35.73-60-3-10` / `40dcc-72d036`; this is not the same as the first-install
-baseline and remains an explicit release blocker.
+It pins independent input contracts for the frozen RC1 hardware source
+(`V1TLS35.73-60-3-10` / `40dcc-72d036`) and the first-install baseline under
+review (`V1TLS35.73-60-3-14` / `89e5f-45c91`). Extraction is verified for both;
+physical first-install acceptance remains a release blocker.
 
 Current status: **release candidate**. Two XT2303-2 units accepted the frozen RC1
 through recorded slot and full Virtual A/B update flows. This repository does not
