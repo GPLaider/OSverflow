@@ -143,7 +143,7 @@ def verify_device_metadata() -> None:
         "V1TLS35.73-60-3-14/89e5f-45c91",
     ]
     device_source_repository = "https://github.com/GPLaider/android_device_motorola_lyriq"
-    device_source_commit = "ce94da8dfa29394848f421841531cccec7b1fc2f"
+    device_source_commit = "5f0f6d681c22828668d59666740a9f3d7be9d6c0"
     assert support["device_source_repository"] == device_source_repository
     assert support["device_source_commit"] == device_source_commit
     assert support["stock_input_extractor"] == (
@@ -239,10 +239,7 @@ def verify_lyriq_platform_support() -> None:
 
     root = ElementTree.parse(LYRIQ_LOCAL_MANIFEST).getroot()
     remotes = {item.get("name"): item.get("fetch") for item in root.findall("remote")}
-    if remotes != {
-        "osverflow-github": "https://github.com/",
-        "osverflow-aosp": "https://android.googlesource.com/",
-    }:
+    if remotes != {"osverflow-github": "https://github.com/"}:
         raise SystemExit("unexpected Lyriq local-manifest remotes")
     projects = {
         item.get("path"): (
@@ -254,7 +251,7 @@ def verify_lyriq_platform_support() -> None:
         "device/motorola/lyriq": (
             "GPLaider/android_device_motorola_lyriq",
             "osverflow-github",
-            "ce94da8dfa29394848f421841531cccec7b1fc2f",
+            "5f0f6d681c22828668d59666740a9f3d7be9d6c0",
         ),
         "packages/apps/GmsCompat": (
             "VoltageOS/packages_apps_GmsCompat",
@@ -265,11 +262,6 @@ def verify_lyriq_platform_support() -> None:
             "GrapheneOS/platform_external_GmsCompatConfig",
             "osverflow-github",
             "87b8bc336cc6aca7fe480cfcc98aaaeecfd7eb6a",
-        ),
-        "packages/apps/Calendar": (
-            "platform/packages/apps/Calendar",
-            "osverflow-aosp",
-            "03e057090a3a1e99c1e1e6c495f7a79aa0719b3a",
         ),
     }:
         raise SystemExit("unexpected Lyriq local-manifest project pins")

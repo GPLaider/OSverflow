@@ -17,9 +17,9 @@
     "V1TLS35.73-60-3-14/89e5f-45c91"
   ],
   "device_source_repository": "https://github.com/GPLaider/android_device_motorola_lyriq",
-  "device_source_commit": "ce94da8dfa29394848f421841531cccec7b1fc2f",
-  "stock_input_extractor": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/ce94da8dfa29394848f421841531cccec7b1fc2f/tools/extract_stock.py",
-  "kernel_source_reference": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/ce94da8dfa29394848f421841531cccec7b1fc2f/kernel-source-reference.json",
+  "device_source_commit": "5f0f6d681c22828668d59666740a9f3d7be9d6c0",
+  "stock_input_extractor": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/5f0f6d681c22828668d59666740a9f3d7be9d6c0/tools/extract_stock.py",
+  "kernel_source_reference": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/5f0f6d681c22828668d59666740a9f3d7be9d6c0/kernel-source-reference.json",
   "source_manifest": {
     "lineage_repository": "https://github.com/LineageOS/android",
     "lineage_commit": "5c3bbcbf9364c096cbe9a361af998e0bc398bdc6",
