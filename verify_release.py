@@ -263,6 +263,11 @@ def verify_lyriq_platform_support() -> None:
             "osverflow-github",
             "87b8bc336cc6aca7fe480cfcc98aaaeecfd7eb6a",
         ),
+        "external/AppCompatConfig": (
+            "GrapheneOS/platform_external_AppCompatConfig",
+            "osverflow-github",
+            "6e90a551fdd9b92739076b3916c1cdee944faaa4",
+        ),
         "packages/apps/AppCompatConfig": (
             "GrapheneOS/platform_packages_apps_AppCompatConfig",
             "osverflow-github",
@@ -370,6 +375,11 @@ def verify_gmscompat() -> None:
             "project": "packages/apps/AppCompatConfig",
             "repository": "https://github.com/GrapheneOS/platform_packages_apps_AppCompatConfig",
             "commit": "4bcc537aea249d2caf16c5f0425437dde175f979",
+        },
+        {
+            "project": "external/AppCompatConfig",
+            "repository": "https://github.com/GrapheneOS/platform_external_AppCompatConfig",
+            "commit": "6e90a551fdd9b92739076b3916c1cdee944faaa4",
         },
     ]:
         raise SystemExit("unexpected GmsCompat companion source contract")

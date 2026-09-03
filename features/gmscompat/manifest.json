@@ -114,6 +114,11 @@
       "project": "packages/apps/AppCompatConfig",
       "repository": "https://github.com/GrapheneOS/platform_packages_apps_AppCompatConfig",
       "commit": "4bcc537aea249d2caf16c5f0425437dde175f979"
+    },
+    {
+      "project": "external/AppCompatConfig",
+      "repository": "https://github.com/GrapheneOS/platform_external_AppCompatConfig",
+      "commit": "6e90a551fdd9b92739076b3916c1cdee944faaa4"
     }
   ]
 }
