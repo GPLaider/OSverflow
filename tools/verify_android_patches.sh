@@ -64,6 +64,12 @@ check_head packages/providers/DownloadProvider 6d2a304dc8237b2da9910799380636fe5
 check_head system/tools/aidl 3747384b876442e7ea0c355fe5adc75b29362833
 check_head packages/modules/adb 262cc9ada912c17f30f3130ae22e8012be4e10fe
 check_head system/sepolicy 885cc500f6078a766d1f6def5ce4c06c55841773
+check_head build/make 5a841be38fec92de9a8a408cf5812ca748ccc02e
+check_head device/lineage/sepolicy c6e972cf4ff9bd472052b29cf8eae7bc3e70d378
+check_head external/selinux 085c131ad1b984bfa8ffdafee7a976e9d89f403c
+check_head packages/modules/Telephony 6175c04a2cb3254455c58c9c653dc36a8a7e6dac
+check_head external/dng_sdk 60de57ba9f18dd6366914ad74580063fe102c87c
+check_head external/libjxl 4365ed52860edc6898277200c9bb41971f005e11
 
 check_series frameworks/base \
   features/gmscompat/patches/0003-frameworks-base.patch \
@@ -99,5 +105,17 @@ check_series packages/providers/DownloadProvider \
 check_series system/tools/aidl features/gmscompat/patches/0015-aidl.patch
 check_series packages/modules/adb features/tailscadble/patches/0001-adb-specific-listener.patch
 check_series system/sepolicy features/tailscadble/patches/0004-sepolicy-listen-property.patch
+check_series build/make \
+  features/lyriq-platform-support/patches/0001-build-make-preserve-hybrid-payloads.patch
+check_series device/lineage/sepolicy \
+  features/lyriq-platform-support/patches/0002-lineage-sepolicy-avoid-stock-camera-property-duplicate.patch
+check_series external/selinux \
+  features/lyriq-platform-support/patches/0003-libsepol-merge-cil-xperm-rules.patch
+check_series packages/modules/Telephony \
+  features/lyriq-platform-support/patches/0004-telephony-metrics-vendor-compat-shim.patch
+check_series external/dng_sdk \
+  features/lyriq-platform-support/patches/0005-dng-sdk-avoid-vendor-variant.patch
+check_series external/libjxl \
+  features/lyriq-platform-support/patches/0006-libjxl-avoid-vendor-variant.patch
 
 printf '%s\n' OSVERFLOW_ANDROID_PATCHES_OK

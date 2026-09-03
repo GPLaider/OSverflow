@@ -11,6 +11,8 @@
 - [x] Secret/binary/path scan passes on tracked candidates.
 - [ ] Repository visibility and public description selected by the maintainer.
 - [x] Android project integrations are replayable from their pinned upstreams.
+- [x] Lyriq clean-checkout manifest and six device-specific platform-support
+      patches are pinned, hash-verified, and replayable at exact source anchors.
 - [x] Sanitized Lyriq device-source candidate is isolated and CI-verified.
 - [x] CraftedG remains intentionally isolated from the mixed private Android
       integration until a clean default-deny port exists.
@@ -18,7 +20,8 @@
 
 ## Installable Lyriq release — additional blockers
 
-- [ ] Reconstruct the accepted source as clean per-project Git commits.
+- [x] Package the accepted source deltas as clean, exact-anchor patchsets.
+- [ ] Reconstruct those patchsets in a separate clean Android checkout.
 - [x] Pin the exact public GKI identity and five matching Motorola kernel-source
       repositories, including Lyriq DTS and hardware drivers.
 - [ ] Resolve the vendor-module source prefix and external-module revisions,

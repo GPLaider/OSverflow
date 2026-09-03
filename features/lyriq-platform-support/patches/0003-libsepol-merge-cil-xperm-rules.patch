@@ -1,0 +1,105 @@
+diff --git a/libsepol/cil/src/android.c b/libsepol/cil/src/android.c
+index 935542ae8e61139c7389a2c0d4aa56f706019d41..686583b27bc31889b2e8ab1a952c2b4b7d5ec6b9 100644
+--- a/libsepol/cil/src/android.c
++++ b/libsepol/cil/src/android.c
+@@ -1035,8 +1035,16 @@ static int apply_rules(struct cil_tree_node *node, uint32_t *finished __attribut
+ 			cil_log(CIL_WARN, "Found a neverallow rule.\n");
+ 		}
+ 		break;
+-	case CIL_BOOLEANIF:
+ 	case CIL_AVRULEX:
++		rule = node->data;
++		if (rule->rule_kind != CIL_AVRULE_NEVERALLOW) {
++			rc = cil_avrulex_to_policydb(pdb, db, node->data);
++		}
++		else {
++			cil_log(CIL_WARN, "Found a neverallowx rule.\n");
++		}
++		break;
++	case CIL_BOOLEANIF:
+ 	case CIL_ROLEALLOW: // Unsupported rule statement.
+ 	default:
+ 		break;
+diff --git a/libsepol/cil/src/cil_binary.c b/libsepol/cil/src/cil_binary.c
+index 26a7d0a7cd7b22592f2b57cc46d5928cb2ec690a..8cc6ecb7ab41700ed4fd30e5a9cf40967f80f9ec 100644
+--- a/libsepol/cil/src/cil_binary.c
++++ b/libsepol/cil/src/cil_binary.c
+@@ -4562,6 +4562,56 @@ static int avrulex_compare(hashtab_t h
+ 	return a->source_type != b->source_type || a->target_type != b->target_type || a->target_class != b->target_class || a->specified != b->specified;
+ }
+ 
++int cil_avrulex_to_policydb(policydb_t *pdb, const struct cil_db *db,
++			    struct cil_avrule *cil_avrulex)
++{
++	int rc = SEPOL_ERR;
++	hashtab_t ioctl_table = NULL;
++	hashtab_t nlmsg_table = NULL;
++	struct cil_args_binary args = {
++		.db = db,
++		.pdb = pdb,
++	};
++
++	ioctl_table = hashtab_create(avrulex_hash, avrulex_compare,
++				       AVRULEX_TABLE_SIZE);
++	if (!ioctl_table) {
++		goto exit;
++	}
++
++	nlmsg_table = hashtab_create(avrulex_hash, avrulex_compare,
++				       AVRULEX_TABLE_SIZE);
++	if (!nlmsg_table) {
++		goto exit;
++	}
++
++	args.avrulex_ioctl_table = ioctl_table;
++	args.avrulex_nlmsg_table = nlmsg_table;
++
++	rc = cil_avrulex_to_hashtable(pdb, db, cil_avrulex, &args);
++	if (rc != SEPOL_OK) {
++		goto exit;
++	}
++
++	rc = hashtab_map(ioctl_table, __cil_avrulex_ioctl_to_policydb, pdb);
++	if (rc != SEPOL_OK) {
++		goto exit;
++	}
++
++	rc = hashtab_map(nlmsg_table, __cil_avrulex_nlmsg_to_policydb, pdb);
++
++exit:
++	if (ioctl_table) {
++		hashtab_map(ioctl_table, __cil_avrulex_xperm_destroy, NULL);
++		hashtab_destroy(ioctl_table);
++	}
++	if (nlmsg_table) {
++		hashtab_map(nlmsg_table, __cil_avrulex_xperm_destroy, NULL);
++		hashtab_destroy(nlmsg_table);
++	}
++	return rc;
++}
++
+ int cil_binary_create(const struct cil_db *db, sepol_policydb_t **policydb)
+ {
+ 	int rc = SEPOL_ERR;
+diff --git a/libsepol/cil/src/cil_binary.h b/libsepol/cil/src/cil_binary.h
+index 0b6e3b79b0838585e390851f348ff81970fff3a4..f7528982b61281dc263d9885c61cdcc3f8e86c67 100644
+--- a/libsepol/cil/src/cil_binary.h
++++ b/libsepol/cil/src/cil_binary.h
+@@ -253,6 +253,17 @@ int cil_type_rule_to_policydb(policydb_t *pdb, const struct cil_db *db, struct c
+  */
+ int cil_avrule_to_policydb(policydb_t *pdb, const struct cil_db *db, struct cil_avrule *cil_avrule);
+ 
++/**
++ * Insert a CIL extended permission rule into an existing policydb.
++ *
++ * @param[in] pdb The policy database to insert the rule into.
++ * @param[in] db The CIL database containing the rule symbols.
++ * @param[in] cil_avrulex The extended permission rule datum.
++ *
++ * @return SEPOL_OK upon success or an error otherwise.
++ */
++int cil_avrulex_to_policydb(policydb_t *pdb, const struct cil_db *db, struct cil_avrule *cil_avrulex);
++
+ /**
+  * Insert cil booleanif structure into sepol policydb.  This populates the
+  * policydb conditional list.  Each conditional node contains an expression

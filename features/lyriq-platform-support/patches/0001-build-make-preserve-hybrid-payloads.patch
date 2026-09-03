@@ -1,0 +1,197 @@
+diff --git a/core/Makefile b/core/Makefile
+index b8c418940c5d580d87c501e9485389355e6533ba..5269e41c975dc644bc77add245858e3eecda0582 100644
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -1253,9 +1253,13 @@ INTERNAL_PREBUILT_BOOTIMAGE :=
+ 
+ # Split lunches (especially the system side lunch) can have init_boot enabled without the kernel,
+ # handle that case and continue to pass the OS-version/patch-level values into the init_boot.img.
++ifdef BOARD_MKBOOTIMG_VERSION_ARGS
++INTERNAL_MKBOOTIMG_VERSION_ARGS := $(BOARD_MKBOOTIMG_VERSION_ARGS)
++else
+ INTERNAL_MKBOOTIMG_VERSION_ARGS := \
+   --os_version $(PLATFORM_VERSION_LAST_STABLE) \
+   --os_patch_level $(PLATFORM_SECURITY_PATCH)
++endif
+ 
+ my_installed_prebuilt_gki_apex := $(strip $(foreach package,$(PRODUCT_PACKAGES),$(if $(ALL_MODULES.$(package).EXTRACTED_BOOT_IMAGE),$(package))))
+ ifdef my_installed_prebuilt_gki_apex
+@@ -1780,7 +1784,10 @@ ifdef BOARD_PREBUILT_VENDOR_BOOTIMAGE
+ INTERNAL_PREBUILT_VENDOR_BOOTIMAGE := $(BOARD_PREBUILT_VENDOR_BOOTIMAGE)
+ INSTALLED_VENDOR_BOOTIMAGE_TARGET := $(PRODUCT_OUT)/vendor_boot.img
+ 
+-ifeq ($(BOARD_AVB_ENABLE),true)
++ifeq ($(BOARD_PREBUILT_VENDOR_BOOTIMAGE_PRESERVE_AVB_FOOTER),true)
++$(INSTALLED_VENDOR_BOOTIMAGE_TARGET): $(INTERNAL_PREBUILT_VENDOR_BOOTIMAGE)
++	cp $(INTERNAL_PREBUILT_VENDOR_BOOTIMAGE) $@
++else ifeq ($(BOARD_AVB_ENABLE),true)
+ $(INSTALLED_VENDOR_BOOTIMAGE_TARGET): $(INTERNAL_PREBUILT_VENDOR_BOOTIMAGE) $(AVBTOOL) $(BOARD_AVB_VENDOR_BOOT_KEY_PATH)
+ 	cp $(INTERNAL_PREBUILT_VENDOR_BOOTIMAGE) $@
+ 	chmod +w $@
+@@ -1793,7 +1800,7 @@ else
+ $(INSTALLED_VENDOR_BOOTIMAGE_TARGET): $(INTERNAL_PREBUILT_VENDOR_BOOTIMAGE)
+ 	cp $(INTERNAL_PREBUILT_VENDOR_BOOTIMAGE) $@
+ 
+-endif # BOARD_AVB_ENABLE
++endif # BOARD_PREBUILT_VENDOR_BOOTIMAGE_PRESERVE_AVB_FOOTER
+ $(call declare-1p-container,$(INSTALLED_VENDOR_BOOTIMAGE_TARGET),)
+ $(call declare-container-license-deps,$(INSTALLED_VENDOR_BOOTIMAGE_TARGET),$(INTERNAL_PREBUILT_VENDOR_BOOTIMAGE),$(PRODUCT_OUT)/:/)
+ endif # BOARD_PREBUILT_VENDOR_BOOTIMAGE
+@@ -4819,8 +4826,9 @@ BOARD_AVB_SYSTEM_EXT_ADD_HASHTREE_FOOTER_ARGS += \
+     --prop com.android.build.system_ext.fingerprint:$(BUILD_FINGERPRINT_FROM_FILE) \
+     --prop com.android.build.system_ext.security_patch:$(PLATFORM_SECURITY_PATCH)
+ 
++BOOT_FINGERPRINT ?= $(BUILD_FINGERPRINT_FROM_FILE)
+ BOARD_AVB_BOOT_ADD_HASH_FOOTER_ARGS += \
+-    --prop com.android.build.boot.fingerprint:$(BUILD_FINGERPRINT_FROM_FILE)
++    --prop com.android.build.boot.fingerprint:$(BOOT_FINGERPRINT)
+ 
+ BOARD_AVB_INIT_BOOT_ADD_HASH_FOOTER_ARGS += \
+     --prop com.android.build.init_boot.fingerprint:$(BUILD_FINGERPRINT_FROM_FILE)
+@@ -6030,6 +6038,9 @@ ifeq ($(INSTALLED_BOOTIMAGE_TARGET),)
+ else
+ 	echo "boot_images=$(foreach b,$(INSTALLED_BOOTIMAGE_TARGET),$(notdir $(b)))" >> $@
+ endif
++ifeq ($(BOARD_PREBUILT_BOOTIMAGE_PRESERVE_PAYLOAD),true)
++	$(hide) echo "preserve_prebuilt_boot_payload=true" >> $@
++endif
+ ifneq ($(INSTALLED_INIT_BOOT_IMAGE_TARGET),)
+ 	$(hide) echo "init_boot=true" >> $@
+ 	$(hide) echo "init_boot_size=$(BOARD_INIT_BOOT_IMAGE_PARTITION_SIZE)" >> $@
+diff --git a/core/board_config.mk b/core/board_config.mk
+index cc925bc6740ce9428a66ac812eb0128a0d46b18e..578a4fe5cebde2c426fa45b2a081e34010418ab3 100644
+--- a/core/board_config.mk
++++ b/core/board_config.mk
+@@ -164,6 +164,7 @@ _board_strip_list += BOARD_AVB_VENDOR_KERNEL_BOOT_KEY_PATH
+ _board_strip_list += BOARD_AVB_VENDOR_KERNEL_BOOT_ALGORITHM
+ _board_strip_list += BOARD_AVB_VENDOR_KERNEL_BOOT_ROLLBACK_INDEX_LOCATION
+ _board_strip_list += BOARD_MKBOOTIMG_ARGS
++_board_strip_list += BOARD_MKBOOTIMG_VERSION_ARGS
+ _board_strip_list += BOARD_VENDOR_BOOTIMAGE_PARTITION_SIZE
+ _board_strip_list += BOARD_VENDOR_KERNEL_BOOTIMAGE_PARTITION_SIZE
+ _board_strip_list += ODM_MANIFEST_SKUS
+diff --git a/tools/releasetools/build_image.py b/tools/releasetools/build_image.py
+index 736d3554689526d7c5b67d3179186be1ad33ca94..156a9703582e05e31aae43cc21fae8354d7fdd8d 100755
+--- a/tools/releasetools/build_image.py
++++ b/tools/releasetools/build_image.py
+@@ -960,7 +960,10 @@ def CopyInputDirectory(src, dst, filter_file):
+         sys.exit(f"{line}: escapes staging directory by starting with ../ or /")
+       full_src = os.path.join(src, line)
+       full_dst = os.path.join(dst, line)
+-      if os.path.isdir(full_src):
++      # Do not follow directory symlinks here. Absolute partition compatibility
++      # links such as system/vendor -> /vendor may resolve to a host directory,
++      # which would silently turn the image entry into an empty directory.
++      if os.path.isdir(full_src) and not os.path.islink(full_src):
+         os.makedirs(full_dst, exist_ok=True)
+       else:
+         os.makedirs(os.path.dirname(full_dst), exist_ok=True)
+diff --git a/tools/releasetools/sign_target_files_apks.py b/tools/releasetools/sign_target_files_apks.py
+index 73c4b50ce3a350daf7373d39cdd677ffe76c593a..05ea5b1daeb4f5117f1129abcc9226d591b07289 100755
+--- a/tools/releasetools/sign_target_files_apks.py
++++ b/tools/releasetools/sign_target_files_apks.py
+@@ -636,16 +636,38 @@ def GetOtaSigningArgs():
+   return args
+ 
+ 
++def PreservePrebuiltBootPayload(unzip_dir, info_dict):
++  """Stage an installed prebuilt boot image for payload-preserving re-signing."""
++  if info_dict.get("preserve_prebuilt_boot_payload") != "true":
++    return
++
++  installed_boot = os.path.join(unzip_dir, "IMAGES", "boot.img")
++  prebuilt_boot = os.path.join(unzip_dir, "PREBUILT_IMAGES", "boot.img")
++  if not os.path.exists(installed_boot):
++    if os.path.exists(prebuilt_boot):
++      return
++    raise common.ExternalError(
++        "preserve_prebuilt_boot_payload requires IMAGES/boot.img")
++
++  os.makedirs(os.path.dirname(prebuilt_boot), exist_ok=True)
++  os.replace(installed_boot, prebuilt_boot)
++
++
+ def RegenerateKernelPartitions(input_tf_zip: zipfile.ZipFile, output_tf_zip: zipfile.ZipFile, misc_info):
+-  """Re-generate boot and dtbo partitions using new signing configuration"""
++  """Re-generate boot metadata and preserve prebuilt hardware partitions."""
+   files_to_unzip = [
+-      "PREBUILT_IMAGES/*", "BOOTABLE_IMAGES/*.img", "*/boot_16k.img", "*/dtbo_16k.img"]
++      "PREBUILT_IMAGES/*", "BOOTABLE_IMAGES/*.img",
++      "IMAGES/boot.img",
++      "IMAGES/vendor_boot.img", "IMAGES/vendor.img",
++      "IMAGES/vendor_dlkm.img", "IMAGES/system_dlkm.img",
++      "*/boot_16k.img", "*/dtbo_16k.img"]
+   if OPTIONS.input_tmp is None:
+     OPTIONS.input_tmp = common.UnzipTemp(input_tf_zip.filename, files_to_unzip)
+   else:
+     common.UnzipToDir(input_tf_zip.filename, OPTIONS.input_tmp, files_to_unzip)
+   unzip_dir = OPTIONS.input_tmp
+   os.makedirs(os.path.join(unzip_dir, "IMAGES"), exist_ok=True)
++  PreservePrebuiltBootPayload(unzip_dir, misc_info)
+ 
+   boot_image = common.GetBootableImage(
+       "IMAGES/boot.img", "boot.img", unzip_dir, "BOOT", misc_info)
+@@ -654,6 +676,17 @@ def RegenerateKernelPartitions(input_tf_zip: zipfile.ZipFile, output_tf_zip: zip
+     boot_image = os.path.join(unzip_dir, boot_image.name)
+     common.ZipWrite(output_tf_zip, boot_image, "IMAGES/boot.img",
+                     compress_type=zipfile.ZIP_STORED)
++  vendor_boot_image = os.path.join(unzip_dir, "IMAGES", "vendor_boot.img")
++  if os.path.exists(vendor_boot_image):
++    common.ZipWrite(
++        output_tf_zip, vendor_boot_image, "IMAGES/vendor_boot.img",
++        compress_type=zipfile.ZIP_STORED)
++  for image_name in ("vendor.img", "vendor_dlkm.img", "system_dlkm.img"):
++    image_path = os.path.join(unzip_dir, "IMAGES", image_name)
++    if os.path.exists(image_path):
++      common.ZipWrite(
++          output_tf_zip, image_path, "IMAGES/" + image_name,
++          compress_type=zipfile.ZIP_STORED)
+   if misc_info.get("has_dtbo") == "true":
+     add_img_to_target_files.AddDtbo(output_tf_zip)
+   return unzip_dir
+diff --git a/tools/releasetools/test_sign_target_files_apks.py b/tools/releasetools/test_sign_target_files_apks.py
+index 7ac1cff0bb715e4d53f943edd5c0306b1e053957..5787d1b791cf3fb7ee8b4f4b33aff02b0600a2c2 100644
+--- a/tools/releasetools/test_sign_target_files_apks.py
++++ b/tools/releasetools/test_sign_target_files_apks.py
+@@ -23,7 +23,7 @@ import common
+ import test_utils
+ from sign_target_files_apks import (
+     CheckApkAndApexKeysAvailable, EditTags, GetApkFileInfo, ParseAvbInfo,
+-    ReadApexKeysInfo, ReplaceCerts, RewriteAvbProps, RewriteProps,
++    PreservePrebuiltBootPayload, ReadApexKeysInfo, ReplaceCerts, RewriteAvbProps, RewriteProps,
+     WriteOtacerts)
+ 
+ 
+@@ -47,6 +47,25 @@ name="apex.apexd_test_different_app.apex" public_key="system/apex/apexd/apexd_te
+   def setUp(self):
+     self.testdata_dir = test_utils.get_testdata_dir()
+ 
++  def test_PreservePrebuiltBootPayload(self):
++    target_files_dir = common.MakeTempDir()
++    installed_boot = os.path.join(target_files_dir, "IMAGES", "boot.img")
++    prebuilt_boot = os.path.join(
++        target_files_dir, "PREBUILT_IMAGES", "boot.img")
++    os.makedirs(os.path.dirname(installed_boot))
++    os.makedirs(os.path.dirname(prebuilt_boot))
++    with open(installed_boot, "wb") as boot_file:
++      boot_file.write(b"exact-stock-boot-payload")
++    with open(prebuilt_boot, "wb") as boot_file:
++      boot_file.write(b"stale-prebuilt-boot-payload")
++
++    PreservePrebuiltBootPayload(
++        target_files_dir, {"preserve_prebuilt_boot_payload": "true"})
++
++    self.assertFalse(os.path.exists(installed_boot))
++    with open(prebuilt_boot, "rb") as boot_file:
++      self.assertEqual(b"exact-stock-boot-payload", boot_file.read())
++
+   def test_EditTags(self):
+     self.assertEqual(EditTags('dev-keys'), ('release-keys'))
+     self.assertEqual(EditTags('test-keys'), ('release-keys'))
+@@ -618,4 +637,4 @@ name="apex.apexd_test_different_app.apex" public_key="system/apex/apexd/apexd_te
+             ],
+         },
+         ParseAvbInfo(avb_info_string),
+-    )
+\ No newline at end of file
++    )

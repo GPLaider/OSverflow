@@ -28,3 +28,8 @@ contract and fetches exactly two unmodified, upstream-signed app clients:
 F-Droid Classic 1.23.2 and GrapheneOS App Store 36. Their package identity,
 version, size, APK hash, and signer-certificate hash are verified before a build.
 No proprietary IMS payload or APK is stored in either source repository.
+
+For maintainers, `local_manifests/osverflow-lyriq.xml` pins the device tree,
+GmsCompat inputs, and Calendar checkout. The separate platform-support manifest
+pins the six Android project patches needed before building. These are source
+inputs, not installation instructions or proof of a signed image.

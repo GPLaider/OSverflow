@@ -21,3 +21,9 @@ unresolved vendor/external kernel modules outside reproducible-build claims.
 Feature directories contain their own source anchors and attribution where the
 boundary differs. Branding never erases upstream authorship, copyright, license,
 or trademark obligations.
+
+The Lyriq clean-checkout recipe is pinned by
+`devices/motorola/lyriq/local_manifests/osverflow-lyriq.xml`. Device-specific
+Android deltas that are not reusable OSverflow features are isolated under
+`features/lyriq-platform-support/`; its manifest binds every patch to an exact
+project base and hash.

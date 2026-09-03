@@ -1,0 +1,12 @@
+Lyriq platform-support patches modify upstream Android, LineageOS, SELinux,
+Adobe DNG SDK, and JPEG XL source files. Each modified file remains governed
+by its upstream license.
+
+License copies required by the non-Apache components are distributed as:
+
+- LICENSE.libsepol: GNU Lesser General Public License 2.1
+- LICENSE.dng_sdk: Adobe DNG SDK License Agreement
+- LICENSE.libjxl: JPEG XL BSD 3-Clause license
+
+The TelephonyMetrics compatibility shim carries its Apache-2.0 notice in the
+added source file. OSverflow is independent of the upstream projects.

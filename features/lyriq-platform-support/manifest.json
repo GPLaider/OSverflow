@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "status": "source-closure-rc",
+  "lineage_manifest_commit": "5c3bbcbf9364c096cbe9a361af998e0bc398bdc6",
+  "patches": [
+    {
+      "project": "build/make",
+      "base": "5a841be38fec92de9a8a408cf5812ca748ccc02e",
+      "patch": "patches/0001-build-make-preserve-hybrid-payloads.patch",
+      "sha256": "f4f067477f5efbc44dc953e4ee77436d96adb9ef15e35f63f9e70b109b2c0c8b",
+      "license": "Apache-2.0"
+    },
+    {
+      "project": "device/lineage/sepolicy",
+      "base": "c6e972cf4ff9bd472052b29cf8eae7bc3e70d378",
+      "patch": "patches/0002-lineage-sepolicy-avoid-stock-camera-property-duplicate.patch",
+      "sha256": "2c54ed183416acddd9a44297cb1b9eba48a421202bb7dc269748b144ab725919",
+      "license": "Apache-2.0"
+    },
+    {
+      "project": "external/selinux",
+      "base": "085c131ad1b984bfa8ffdafee7a976e9d89f403c",
+      "patch": "patches/0003-libsepol-merge-cil-xperm-rules.patch",
+      "sha256": "a58760d89da554cb445b57fa2e1542a7e505ce63a6f3e9242b15e133c37fbe55",
+      "license": "LGPL-2.1-only"
+    },
+    {
+      "project": "packages/modules/Telephony",
+      "base": "6175c04a2cb3254455c58c9c653dc36a8a7e6dac",
+      "patch": "patches/0004-telephony-metrics-vendor-compat-shim.patch",
+      "sha256": "a9009d6eb8e143999310c632c71c67c331b78b78e729e10e0079712fce9588ef",
+      "license": "Apache-2.0"
+    },
+    {
+      "project": "external/dng_sdk",
+      "base": "60de57ba9f18dd6366914ad74580063fe102c87c",
+      "patch": "patches/0005-dng-sdk-avoid-vendor-variant.patch",
+      "sha256": "7173f9b12a051b5db2e3d440358cff2777544c346e2f292d3c12b1367e554a19",
+      "license": "LicenseRef-Adobe-DNG-SDK"
+    },
+    {
+      "project": "external/libjxl",
+      "base": "4365ed52860edc6898277200c9bb41971f005e11",
+      "patch": "patches/0006-libjxl-avoid-vendor-variant.patch",
+      "sha256": "1a8ee7060161167738760ce789612cf3d2a33753115d3b6a27059c8db9e58117",
+      "license": "BSD-3-Clause"
+    }
+  ]
+}

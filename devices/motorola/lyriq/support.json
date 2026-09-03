@@ -17,15 +17,21 @@
     "V1TLS35.73-60-3-14/89e5f-45c91"
   ],
   "device_source_repository": "https://github.com/GPLaider/android_device_motorola_lyriq",
-  "device_source_commit": "cfa09263aeac686f9ef6fb963dc5bd4d31eec4c2",
-  "stock_input_extractor": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/cfa09263aeac686f9ef6fb963dc5bd4d31eec4c2/tools/extract_stock.py",
-  "kernel_source_reference": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/cfa09263aeac686f9ef6fb963dc5bd4d31eec4c2/kernel-source-reference.json",
+  "device_source_commit": "625368f36475fbf26a6aff624725c1abeeed5311",
+  "stock_input_extractor": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/625368f36475fbf26a6aff624725c1abeeed5311/tools/extract_stock.py",
+  "kernel_source_reference": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/625368f36475fbf26a6aff624725c1abeeed5311/kernel-source-reference.json",
+  "source_manifest": {
+    "lineage_repository": "https://github.com/LineageOS/android",
+    "lineage_commit": "5c3bbcbf9364c096cbe9a361af998e0bc398bdc6",
+    "local_manifest": "local_manifests/osverflow-lyriq.xml",
+    "platform_support_manifest": "../../../features/lyriq-platform-support/manifest.json"
+  },
   "bootloader": {
     "unlock_required": true,
     "relocking_supported": false
   },
   "build": {
-    "type": "userdebug",
+    "type": "user",
     "framework_security_patch": "2026-06-01",
     "vendor_security_patch": "2026-08-01"
   },

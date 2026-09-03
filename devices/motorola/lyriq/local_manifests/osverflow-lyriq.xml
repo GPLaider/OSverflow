@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- SPDX-FileCopyrightText: 2026 The OSverflow Project -->
+<!-- SPDX-License-Identifier: Apache-2.0 -->
+<manifest>
+  <remote name="osverflow-github" fetch="https://github.com/" />
+  <remote name="osverflow-aosp" fetch="https://android.googlesource.com/" />
+
+  <project name="GPLaider/android_device_motorola_lyriq"
+           path="device/motorola/lyriq"
+           remote="osverflow-github"
+           revision="625368f36475fbf26a6aff624725c1abeeed5311" />
+  <project name="VoltageOS/packages_apps_GmsCompat"
+           path="packages/apps/GmsCompat"
+           remote="osverflow-github"
+           revision="ec541b9f7ff42faad5aa553e4bb255014aec2527" />
+  <project name="GrapheneOS/platform_external_GmsCompatConfig"
+           path="external/GmsCompatConfig"
+           remote="osverflow-github"
+           revision="87b8bc336cc6aca7fe480cfcc98aaaeecfd7eb6a" />
+  <project name="platform/packages/apps/Calendar"
+           path="packages/apps/Calendar"
+           remote="osverflow-aosp"
+           revision="03e057090a3a1e99c1e1e6c495f7a79aa0719b3a" />
+</manifest>

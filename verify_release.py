@@ -11,9 +11,12 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import xml.etree.ElementTree as ElementTree
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
+LYRIQ_PLATFORM_SUPPORT = ROOT / "features/lyriq-platform-support/manifest.json"
+LYRIQ_LOCAL_MANIFEST = ROOT / "devices/motorola/lyriq/local_manifests/osverflow-lyriq.xml"
 
 REQUIRED = (
     "README.md",
@@ -23,6 +26,12 @@ REQUIRED = (
     "SECURITY.md",
     "RELEASE_CHECKLIST.md",
     "devices/motorola/lyriq/support.json",
+    "devices/motorola/lyriq/local_manifests/osverflow-lyriq.xml",
+    "features/lyriq-platform-support/manifest.json",
+    "features/lyriq-platform-support/NOTICE",
+    "features/lyriq-platform-support/LICENSE.libsepol",
+    "features/lyriq-platform-support/LICENSE.dng_sdk",
+    "features/lyriq-platform-support/LICENSE.libjxl",
     "features/tailscadble/verify_export.py",
     "features/gmscompat/manifest.json",
     "features/gmscompat/NOTICE",
@@ -134,7 +143,7 @@ def verify_device_metadata() -> None:
         "V1TLS35.73-60-3-14/89e5f-45c91",
     ]
     device_source_repository = "https://github.com/GPLaider/android_device_motorola_lyriq"
-    device_source_commit = "cfa09263aeac686f9ef6fb963dc5bd4d31eec4c2"
+    device_source_commit = "625368f36475fbf26a6aff624725c1abeeed5311"
     assert support["device_source_repository"] == device_source_repository
     assert support["device_source_commit"] == device_source_commit
     assert support["stock_input_extractor"] == (
@@ -143,9 +152,123 @@ def verify_device_metadata() -> None:
     assert support["kernel_source_reference"] == (
         f"{device_source_repository}/blob/{device_source_commit}/kernel-source-reference.json"
     )
+    assert support["source_manifest"] == {
+        "lineage_repository": "https://github.com/LineageOS/android",
+        "lineage_commit": "5c3bbcbf9364c096cbe9a361af998e0bc398bdc6",
+        "local_manifest": "local_manifests/osverflow-lyriq.xml",
+        "platform_support_manifest": "../../../features/lyriq-platform-support/manifest.json",
+    }
     assert support["bootloader"]["unlock_required"] is True
     assert support["bootloader"]["relocking_supported"] is False
+    assert support["build"]["type"] == "user"
     assert support["public_install_artifact"] is None
+
+
+def verify_lyriq_platform_support() -> None:
+    manifest = json.loads(LYRIQ_PLATFORM_SUPPORT.read_text(encoding="utf-8"))
+    expected = {
+        "build/make": (
+            "5a841be38fec92de9a8a408cf5812ca748ccc02e",
+            "patches/0001-build-make-preserve-hybrid-payloads.patch",
+            "f4f067477f5efbc44dc953e4ee77436d96adb9ef15e35f63f9e70b109b2c0c8b",
+            "Apache-2.0",
+        ),
+        "device/lineage/sepolicy": (
+            "c6e972cf4ff9bd472052b29cf8eae7bc3e70d378",
+            "patches/0002-lineage-sepolicy-avoid-stock-camera-property-duplicate.patch",
+            "2c54ed183416acddd9a44297cb1b9eba48a421202bb7dc269748b144ab725919",
+            "Apache-2.0",
+        ),
+        "external/selinux": (
+            "085c131ad1b984bfa8ffdafee7a976e9d89f403c",
+            "patches/0003-libsepol-merge-cil-xperm-rules.patch",
+            "a58760d89da554cb445b57fa2e1542a7e505ce63a6f3e9242b15e133c37fbe55",
+            "LGPL-2.1-only",
+        ),
+        "packages/modules/Telephony": (
+            "6175c04a2cb3254455c58c9c653dc36a8a7e6dac",
+            "patches/0004-telephony-metrics-vendor-compat-shim.patch",
+            "a9009d6eb8e143999310c632c71c67c331b78b78e729e10e0079712fce9588ef",
+            "Apache-2.0",
+        ),
+        "external/dng_sdk": (
+            "60de57ba9f18dd6366914ad74580063fe102c87c",
+            "patches/0005-dng-sdk-avoid-vendor-variant.patch",
+            "7173f9b12a051b5db2e3d440358cff2777544c346e2f292d3c12b1367e554a19",
+            "LicenseRef-Adobe-DNG-SDK",
+        ),
+        "external/libjxl": (
+            "4365ed52860edc6898277200c9bb41971f005e11",
+            "patches/0006-libjxl-avoid-vendor-variant.patch",
+            "1a8ee7060161167738760ce789612cf3d2a33753115d3b6a27059c8db9e58117",
+            "BSD-3-Clause",
+        ),
+    }
+    if (
+        manifest.get("schema") != 1
+        or manifest.get("status") != "source-closure-rc"
+        or manifest.get("lineage_manifest_commit")
+        != "5c3bbcbf9364c096cbe9a361af998e0bc398bdc6"
+    ):
+        raise SystemExit("invalid Lyriq platform-support manifest identity")
+    entries = manifest.get("patches")
+    if not isinstance(entries, list) or len(entries) != len(expected):
+        raise SystemExit("unexpected Lyriq platform-support patch count")
+    seen: set[str] = set()
+    for entry in entries:
+        project = entry.get("project")
+        if not isinstance(project, str) or project in seen or project not in expected:
+            raise SystemExit(f"invalid Lyriq platform-support project: {project}")
+        base, relative, digest, license_id = expected[project]
+        if entry != {
+            "project": project,
+            "base": base,
+            "patch": relative,
+            "sha256": digest,
+            "license": license_id,
+        }:
+            raise SystemExit(f"unexpected Lyriq platform-support contract: {project}")
+        path = LYRIQ_PLATFORM_SUPPORT.parent / relative
+        if not path.is_file() or hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+            raise SystemExit(f"Lyriq platform-support patch mismatch: {relative}")
+        seen.add(project)
+
+    root = ElementTree.parse(LYRIQ_LOCAL_MANIFEST).getroot()
+    remotes = {item.get("name"): item.get("fetch") for item in root.findall("remote")}
+    if remotes != {
+        "osverflow-github": "https://github.com/",
+        "osverflow-aosp": "https://android.googlesource.com/",
+    }:
+        raise SystemExit("unexpected Lyriq local-manifest remotes")
+    projects = {
+        item.get("path"): (
+            item.get("name"), item.get("remote"), item.get("revision")
+        )
+        for item in root.findall("project")
+    }
+    if projects != {
+        "device/motorola/lyriq": (
+            "GPLaider/android_device_motorola_lyriq",
+            "osverflow-github",
+            "625368f36475fbf26a6aff624725c1abeeed5311",
+        ),
+        "packages/apps/GmsCompat": (
+            "VoltageOS/packages_apps_GmsCompat",
+            "osverflow-github",
+            "ec541b9f7ff42faad5aa553e4bb255014aec2527",
+        ),
+        "external/GmsCompatConfig": (
+            "GrapheneOS/platform_external_GmsCompatConfig",
+            "osverflow-github",
+            "87b8bc336cc6aca7fe480cfcc98aaaeecfd7eb6a",
+        ),
+        "packages/apps/Calendar": (
+            "platform/packages/apps/Calendar",
+            "osverflow-aosp",
+            "03e057090a3a1e99c1e1e6c495f7a79aa0719b3a",
+        ),
+    }:
+        raise SystemExit("unexpected Lyriq local-manifest project pins")
 
 
 def verify_spdx() -> None:
@@ -235,6 +358,7 @@ def verify_craftedg() -> None:
 def main() -> None:
     verify_tree()
     verify_device_metadata()
+    verify_lyriq_platform_support()
     verify_spdx()
     verify_tailscadble()
     verify_gmscompat()

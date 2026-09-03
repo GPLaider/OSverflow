@@ -21,6 +21,7 @@ and proprietary redistribution review remain open.
 | [Privacy Lock](features/privacy-lock/README.md) | patch export | Framework service gates for camera, microphone, and location locks |
 | [Cellular Service Controls](features/cellular-service-controls/README.md) | patch export | Independent call and SMS gates plus Settings UI while cellular data stays provisioned |
 | [Security Suite 0/5/6/7/8](features/security-suite-05678/README.md) | patch + device recipe | Verified-update model, USB restriction reuse, inactivity reboot, Disposable Space, compatibility profiles |
+| [Lyriq platform support](features/lyriq-platform-support/README.md) | source-closure patchset | Six pinned hybrid-build, SELinux, IMS, and vendor-visibility patches |
 
 See [feature status](docs/FEATURES.md), [release model](docs/RELEASE_MODEL.md),
 [license audit](docs/LICENSE_AUDIT.md), [Lyriq support](devices/motorola/lyriq/README.md),
