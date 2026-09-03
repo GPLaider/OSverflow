@@ -2,16 +2,10 @@
 
 ## Feature 6: inactivity reboot
 
-Copy `InactivityRebootService.java` into `frameworks/base/services/core` and call
-it once from the ROM's existing system-server extension point after required
-services exist, on a background handler:
-
-```java
-InactivityRebootService.init(systemContext, backgroundHandler);
-```
-
-Apply `0001-lineageparts-inactivity-reboot-ui.patch` to the anchored LineageParts
-tree. Preserve the setting key and timeout whitelist.
+Apply `0002-frameworks-base-inactivity-reboot.patch` to `frameworks/base` and
+`0001-lineageparts-inactivity-reboot-ui.patch` to LineageParts. The framework
+patch starts the service on Android's background handler at the accepted
+system-ready point. Preserve the setting key and timeout whitelist.
 
 ## Feature 7: Disposable Space
 
@@ -20,9 +14,8 @@ framework resource overlay. Do not add manual deletion code.
 
 ## Feature 8: Compatibility Profiles
 
-Copy the parser, test, Settings fragment, and empty catalog to their matching
-paths. Apply the service and gateway patches, then merge the Settings resource
-fragments. Product makefiles must install the catalog at
+Apply `0003-frameworks-base-compatibility-profiles.patch` and
+`0004-settings-compatibility-profiles.patch`, then install the empty catalog at
 `/system/etc/osverflow/compatibility_profiles.properties` as root-owned `0644`
 `system_file` data.
 

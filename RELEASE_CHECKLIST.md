@@ -8,7 +8,8 @@
 - [x] Feature and Lyriq status distinguish device acceptance from export validation.
 - [x] Secret/binary/path scan passes on tracked candidates.
 - [ ] Repository visibility and public description selected by the maintainer.
-- [ ] Remaining reference-only integrations converted to clean replayable commits.
+- [ ] Android project integrations are replayable; clean Lyriq device-tree and
+      intentionally isolated CraftedG integration remain.
 - [x] Current source-RC SPDX/NOTICE review completed and enforced by the verifier.
 
 ## Installable Lyriq release — additional blockers

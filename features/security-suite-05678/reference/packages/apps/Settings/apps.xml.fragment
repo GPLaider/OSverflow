@@ -1,6 +1,0 @@
-<Preference
-    android:key="osverflow_compatibility_profiles"
-    android:title="@string/compatibility_profiles_title"
-    android:summary="@string/compatibility_profiles_dashboard_summary"
-    android:order="23"
-    android:fragment="com.android.settings.applications.CompatibilityProfilesFragment" />

@@ -1,4 +1,0 @@
-<string name="cellular_call_access_title">통화 사용</string>
-<string name="cellular_call_access_summary">일반 셀룰러 통화를 허용합니다. 긴급통화는 유지되며 모바일 데이터와 SMS에는 영향이 없습니다.</string>
-<string name="cellular_sms_access_title">SMS 사용</string>
-<string name="cellular_sms_access_summary">SMS 송수신을 허용합니다. 모바일 데이터와 통화에는 영향이 없습니다.</string>

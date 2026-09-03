@@ -1,0 +1,585 @@
+diff --git a/core/java/android/ext/compat/CompatibilityProfileConfig.java b/core/java/android/ext/compat/CompatibilityProfileConfig.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..ba55db95566ecf198fc317c167c3440260883b71
+--- /dev/null
++++ b/core/java/android/ext/compat/CompatibilityProfileConfig.java
+@@ -0,0 +1,288 @@
++/*
++ * SPDX-FileCopyrightText: 2026 The OSverflow Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++package android.ext.compat;
++
++import static android.content.pm.PackageManager.CERT_INPUT_SHA256;
++import static android.content.pm.PackageManager.MATCH_ANY_USER;
++
++import android.content.pm.ApplicationInfo;
++import android.content.pm.PackageManager;
++import android.os.Environment;
++
++import java.io.File;
++import java.io.IOException;
++import java.io.Reader;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.util.ArrayList;
++import java.util.Collections;
++import java.util.HashSet;
++import java.util.LinkedHashSet;
++import java.util.List;
++import java.util.Locale;
++import java.util.Map;
++import java.util.Properties;
++import java.util.Set;
++import java.util.StringJoiner;
++import java.util.TreeMap;
++import java.util.TreeSet;
++import java.util.regex.Pattern;
++
++/** @hide */
++public final class CompatibilityProfileConfig {
++    private static final String RELATIVE_PATH =
++            "etc/osverflow/compatibility_profiles.properties";
++    private static final Pattern PACKAGE_NAME = Pattern.compile(
++            "[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)+");
++    private static final Pattern SHA256 = Pattern.compile("[0-9a-fA-F]{64}");
++
++    private CompatibilityProfileConfig() {}
++
++    public enum SecurityImpact {
++        NONE,
++        REDUCES_APP_SECURITY,
++        REDUCES_PLATFORM_SECURITY,
++    }
++
++    public enum Applicability {
++        ACTIVE,
++        RETIRED,
++        EXPIRED,
++        NOT_INSTALLED,
++        SIGNER_MISMATCH,
++        VERSION_MISMATCH,
++    }
++
++    public record Profile(
++            String packageName,
++            String signerSha256,
++            long minVersionCode,
++            long maxVersionCode,
++            long expiresAtMillis,
++            SecurityImpact securityImpact,
++            String reason,
++            boolean retired,
++            Set<Long> ownedChangeIds,
++            Map<Long, Boolean> overrides) {
++
++        public String toPlatformConfigString() {
++            StringJoiner result = new StringJoiner(",", signerSha256 + "~", "");
++            overrides.forEach((changeId, enabled) -> result.add(changeId + ":"
++                    + minVersionCode + ":" + maxVersionCode + ":" + enabled));
++            return result.toString();
++        }
++
++        public Applicability getApplicability(PackageManager pm, long nowMillis) {
++            if (retired) {
++                return Applicability.RETIRED;
++            }
++            if (nowMillis >= expiresAtMillis) {
++                return Applicability.EXPIRED;
++            }
++
++            final ApplicationInfo appInfo;
++            try {
++                appInfo = pm.getApplicationInfo(packageName, MATCH_ANY_USER);
++            } catch (PackageManager.NameNotFoundException e) {
++                return Applicability.NOT_INSTALLED;
++            }
++            if (!pm.hasSigningCertificate(packageName, decodeSha256(signerSha256),
++                    CERT_INPUT_SHA256)) {
++                return Applicability.SIGNER_MISMATCH;
++            }
++            if (appInfo.longVersionCode < minVersionCode
++                    || appInfo.longVersionCode > maxVersionCode) {
++                return Applicability.VERSION_MISMATCH;
++            }
++            return Applicability.ACTIVE;
++        }
++    }
++
++    public static File getSystemFile() {
++        return new File(Environment.getRootDirectory(), RELATIVE_PATH);
++    }
++
++    public static List<Profile> loadSystem() throws IOException {
++        return load(getSystemFile());
++    }
++
++    public static List<Profile> load(File file) throws IOException {
++        Properties properties = new Properties();
++        try (Reader reader = Files.newBufferedReader(file.toPath(), StandardCharsets.UTF_8)) {
++            properties.load(reader);
++        }
++
++        String profileList = properties.getProperty("profiles");
++        if (profileList == null) {
++            throw new IllegalArgumentException("missing profiles property");
++        }
++
++        List<Profile> result = new ArrayList<>();
++        Set<String> packages = new LinkedHashSet<>();
++        Set<String> allowedKeys = new HashSet<>();
++        allowedKeys.add("profiles");
++        if (!profileList.trim().isEmpty()) {
++            for (String value : profileList.split(",", -1)) {
++                String packageName = value.trim();
++                if (!PACKAGE_NAME.matcher(packageName).matches()) {
++                    throw new IllegalArgumentException("invalid package name: " + packageName);
++                }
++                if (!packages.add(packageName)) {
++                    throw new IllegalArgumentException("duplicate package: " + packageName);
++                }
++                result.add(parseProfile(properties, packageName, allowedKeys));
++            }
++        }
++
++        for (String key : properties.stringPropertyNames()) {
++            if (!allowedKeys.contains(key)) {
++                throw new IllegalArgumentException("unknown property: " + key);
++            }
++        }
++        return Collections.unmodifiableList(result);
++    }
++
++    private static Profile parseProfile(Properties properties, String packageName,
++            Set<String> allowedKeys) {
++        String prefix = packageName + ".";
++        String signer = required(properties, prefix, "signer_sha256", allowedKeys)
++                .toLowerCase(Locale.ROOT);
++        if (!SHA256.matcher(signer).matches()) {
++            throw new IllegalArgumentException("invalid SHA-256 for " + packageName);
++        }
++
++        long minVersion = nonNegativeLong(required(properties, prefix, "min_version_code",
++                allowedKeys), prefix + "min_version_code");
++        long maxVersion = nonNegativeLong(required(properties, prefix, "max_version_code",
++                allowedKeys), prefix + "max_version_code");
++        if (minVersion > maxVersion) {
++            throw new IllegalArgumentException("reversed version range for " + packageName);
++        }
++
++        long expiry = positiveLong(required(properties, prefix, "expires_at_millis", allowedKeys),
++                prefix + "expires_at_millis");
++        SecurityImpact impact;
++        try {
++            impact = SecurityImpact.valueOf(required(properties, prefix, "security_impact",
++                    allowedKeys).toUpperCase(Locale.ROOT));
++        } catch (IllegalArgumentException e) {
++            throw new IllegalArgumentException("invalid security impact for " + packageName, e);
++        }
++
++        String reason = required(properties, prefix, "reason", allowedKeys);
++        if (reason.length() > 512) {
++            throw new IllegalArgumentException("reason is too long for " + packageName);
++        }
++        boolean retired = strictBoolean(required(properties, prefix, "retired", allowedKeys),
++                prefix + "retired");
++        Set<Long> ownedIds = parseOwnedIds(required(properties, prefix, "owned_change_ids",
++                allowedKeys), packageName);
++        Map<Long, Boolean> overrides = parseOverrides(
++                requiredAllowEmpty(properties, prefix, "overrides", allowedKeys), packageName);
++
++        if (!ownedIds.containsAll(overrides.keySet())) {
++            throw new IllegalArgumentException("override is not owned by " + packageName);
++        }
++        if (retired == !overrides.isEmpty()) {
++            throw new IllegalArgumentException(retired
++                    ? "retired profile has overrides: " + packageName
++                    : "active profile has no overrides: " + packageName);
++        }
++        return new Profile(packageName, signer, minVersion, maxVersion, expiry, impact, reason,
++                retired, Collections.unmodifiableSet(ownedIds),
++                Collections.unmodifiableMap(overrides));
++    }
++
++    private static String required(Properties properties, String prefix, String field,
++            Set<String> allowedKeys) {
++        String value = requiredAllowEmpty(properties, prefix, field, allowedKeys).trim();
++        if (value.isEmpty()) {
++            throw new IllegalArgumentException("empty property: " + prefix + field);
++        }
++        return value;
++    }
++
++    private static String requiredAllowEmpty(Properties properties, String prefix, String field,
++            Set<String> allowedKeys) {
++        String key = prefix + field;
++        allowedKeys.add(key);
++        String value = properties.getProperty(key);
++        if (value == null) {
++            throw new IllegalArgumentException("missing property: " + key);
++        }
++        return value;
++    }
++
++    private static long nonNegativeLong(String value, String key) {
++        long result = parseLong(value, key);
++        if (result < 0) {
++            throw new IllegalArgumentException("negative property: " + key);
++        }
++        return result;
++    }
++
++    private static long positiveLong(String value, String key) {
++        long result = parseLong(value, key);
++        if (result <= 0) {
++            throw new IllegalArgumentException("non-positive property: " + key);
++        }
++        return result;
++    }
++
++    private static long parseLong(String value, String key) {
++        try {
++            return Long.parseLong(value);
++        } catch (NumberFormatException e) {
++            throw new IllegalArgumentException("invalid long property: " + key, e);
++        }
++    }
++
++    private static boolean strictBoolean(String value, String key) {
++        if (!"true".equalsIgnoreCase(value) && !"false".equalsIgnoreCase(value)) {
++            throw new IllegalArgumentException("invalid boolean property: " + key);
++        }
++        return Boolean.parseBoolean(value);
++    }
++
++    private static Set<Long> parseOwnedIds(String value, String packageName) {
++        Set<Long> result = new TreeSet<>();
++        for (String item : value.split(",", -1)) {
++            long id = positiveLong(item.trim(), packageName + ".owned_change_ids");
++            if (!result.add(id)) {
++                throw new IllegalArgumentException("duplicate owned change ID for " + packageName);
++            }
++        }
++        return result;
++    }
++
++    private static Map<Long, Boolean> parseOverrides(String value, String packageName) {
++        Map<Long, Boolean> result = new TreeMap<>();
++        if (value.trim().isEmpty()) {
++            return result;
++        }
++        for (String item : value.split(",", -1)) {
++            String[] fields = item.trim().split(":", -1);
++            if (fields.length != 2) {
++                throw new IllegalArgumentException("invalid override for " + packageName);
++            }
++            long id = positiveLong(fields[0], packageName + ".overrides");
++            Boolean old = result.put(id, strictBoolean(fields[1], packageName + ".overrides"));
++            if (old != null) {
++                throw new IllegalArgumentException("duplicate override for " + packageName);
++            }
++        }
++        return result;
++    }
++
++    private static byte[] decodeSha256(String value) {
++        byte[] result = new byte[32];
++        for (int i = 0; i < result.length; i++) {
++            int offset = i * 2;
++            result[i] = (byte) Integer.parseInt(value.substring(offset, offset + 2), 16);
++        }
++        return result;
++    }
++}
+diff --git a/services/core/java/com/android/server/compat/overrides/AppCompatOverridesService.java b/services/core/java/com/android/server/compat/overrides/AppCompatOverridesService.java
+index 47b1c5449dc29c49b030922d47584c2906d2f9b6..b90ea3782585176c7870c11f49c74dd9f49593c8 100644
+--- a/services/core/java/com/android/server/compat/overrides/AppCompatOverridesService.java
++++ b/services/core/java/com/android/server/compat/overrides/AppCompatOverridesService.java
+@@ -30,6 +30,7 @@ import static java.util.Collections.emptySet;
+ 
+ import android.annotation.NonNull;
+ import android.annotation.Nullable;
++import android.app.AlarmManager;
+ import android.app.compat.PackageOverride;
+ import android.content.BroadcastReceiver;
+ import android.content.Context;
+@@ -37,6 +38,9 @@ import android.content.Intent;
+ import android.content.IntentFilter;
+ import android.content.pm.ApplicationInfo;
+ import android.content.pm.PackageManager;
++import android.ext.compat.CompatibilityProfileConfig;
++import android.ext.compat.CompatibilityProfileConfig.Applicability;
++import android.ext.compat.CompatibilityProfileConfig.Profile;
+ import android.net.Uri;
+ import android.os.RemoteException;
+ import android.os.ServiceManager;
+@@ -54,8 +58,10 @@ import com.android.internal.compat.CompatibilityOverridesToRemoveConfig;
+ import com.android.internal.compat.IPlatformCompat;
+ import com.android.server.SystemService;
+ 
++import java.io.IOException;
+ import java.util.ArrayList;
+ import java.util.Arrays;
++import java.util.Collections;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+@@ -82,6 +88,12 @@ public final class AppCompatOverridesService {
+     private final AppCompatOverridesParser mOverridesParser;
+     private final PackageReceiver mPackageReceiver;
+     private final List<DeviceConfigListener> mDeviceConfigListeners;
++    private List<Profile> mStaticProfiles = List.of();
++    @Nullable private AlarmManager mAlarmManager;
++    private final AlarmManager.OnAlarmListener mStaticProfileExpiryListener = () -> {
++        applyAllStaticProfiles();
++        scheduleStaticProfileExpiry();
++    };
+ 
+     private AppCompatOverridesService(Context context) {
+         this(context, IPlatformCompat.Stub.asInterface(
+@@ -115,6 +127,111 @@ public final class AppCompatOverridesService {
+         mPackageReceiver.register();
+     }
+ 
++    private void startStaticProfiles() {
++        try {
++            mStaticProfiles = CompatibilityProfileConfig.loadSystem();
++        } catch (IOException | IllegalArgumentException e) {
++            Slog.e(TAG, "Rejecting OSverflow compatibility profiles", e);
++            mStaticProfiles = List.of();
++        }
++        mAlarmManager = mContext.getSystemService(AlarmManager.class);
++        applyAllStaticProfiles();
++        scheduleStaticProfileExpiry();
++    }
++
++    private void applyAllStaticProfiles() {
++        Set<Long> deviceConfigOwnedIds = getAllDeviceConfigOwnedChangeIds();
++        for (Profile profile : mStaticProfiles) {
++            applyStaticProfile(profile, deviceConfigOwnedIds);
++        }
++    }
++
++    private void applyStaticProfile(Profile profile, Set<Long> deviceConfigOwnedIds) {
++        if (!Collections.disjoint(profile.ownedChangeIds(), deviceConfigOwnedIds)) {
++            Slog.e(TAG, "Rejecting OSverflow profile with DeviceConfig-owned change ID: "
++                    + profile.packageName());
++            removePackageOverrides(profile.packageName(), profile.ownedChangeIds());
++            return;
++        }
++
++        Map<Long, PackageOverride> overridesToAdd = emptyMap();
++        if (profile.getApplicability(mPackageManager, System.currentTimeMillis())
++                == Applicability.ACTIVE) {
++            Long versionCode = getVersionCodeOrNull(profile.packageName());
++            if (versionCode != null) {
++                overridesToAdd = mOverridesParser.parsePackageOverrides(
++                        profile.toPlatformConfigString(), profile.packageName(), versionCode,
++                        emptySet());
++            }
++        }
++
++        if (!overridesToAdd.keySet().equals(profile.overrides().keySet())) {
++            overridesToAdd = emptyMap();
++        }
++        putPackageOverrides(profile.packageName(), overridesToAdd);
++
++        Set<Long> overridesToRemove = new ArraySet<>(profile.ownedChangeIds());
++        overridesToRemove.removeAll(overridesToAdd.keySet());
++        removePackageOverrides(profile.packageName(), overridesToRemove);
++    }
++
++    private void applyStaticProfile(String packageName) {
++        Set<Long> deviceConfigOwnedIds = getAllDeviceConfigOwnedChangeIds();
++        for (Profile profile : mStaticProfiles) {
++            if (profile.packageName().equals(packageName)) {
++                applyStaticProfile(profile, deviceConfigOwnedIds);
++                return;
++            }
++        }
++    }
++
++    private void removeStaticProfileOverrides(String packageName) {
++        for (Profile profile : mStaticProfiles) {
++            if (profile.packageName().equals(packageName)) {
++                removePackageOverrides(packageName, profile.ownedChangeIds());
++                return;
++            }
++        }
++    }
++
++    private Set<Long> getAllDeviceConfigOwnedChangeIds() {
++        Set<Long> result = new ArraySet<>();
++        for (String namespace : mSupportedNamespaces) {
++            result.addAll(getOwnedChangeIds(namespace));
++        }
++        return result;
++    }
++
++    private void removeStaticOwnershipCollisions(Set<Long> deviceConfigOwnedIds) {
++        for (Profile profile : mStaticProfiles) {
++            Set<Long> collisions = new ArraySet<>(profile.ownedChangeIds());
++            collisions.retainAll(deviceConfigOwnedIds);
++            if (!collisions.isEmpty()) {
++                removePackageOverrides(profile.packageName(), profile.ownedChangeIds());
++            }
++        }
++    }
++
++    private void scheduleStaticProfileExpiry() {
++        AlarmManager alarmManager = mAlarmManager;
++        if (alarmManager == null) {
++            return;
++        }
++        alarmManager.cancel(mStaticProfileExpiryListener);
++
++        long now = System.currentTimeMillis();
++        long nextExpiry = Long.MAX_VALUE;
++        for (Profile profile : mStaticProfiles) {
++            if (!profile.retired() && profile.expiresAtMillis() > now) {
++                nextExpiry = Math.min(nextExpiry, profile.expiresAtMillis());
++            }
++        }
++        if (nextExpiry != Long.MAX_VALUE) {
++            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextExpiry, TAG,
++                    mContext.getMainExecutor(), null, mStaticProfileExpiryListener);
++        }
++    }
++
+     /**
+      * Same as {@link #applyOverrides(Properties, Set, Map)} except all properties of the given
+      * {@code namespace} are fetched via {@link DeviceConfig#getProperties}.
+@@ -337,6 +454,7 @@ public final class AppCompatOverridesService {
+             mService = new AppCompatOverridesService(getContext());
+             mService.registerDeviceConfigListeners();
+             mService.registerPackageReceiver();
++            mService.startStaticProfiles();
+         }
+     }
+ 
+@@ -366,6 +484,7 @@ public final class AppCompatOverridesService {
+                     FLAG_OWNED_CHANGE_IDS);
+ 
+             Set<Long> ownedChangeIds = getOwnedChangeIds(mNamespace);
++            removeStaticOwnershipCollisions(ownedChangeIds);
+             Map<String, Set<Long>> overridesToRemove = getOverridesToRemove(mNamespace,
+                     ownedChangeIds);
+             if (removeOverridesFlagChanged || ownedChangedIdsFlagChanged) {
+@@ -381,6 +500,7 @@ public final class AppCompatOverridesService {
+             } else {
+                 applyOverrides(properties, ownedChangeIds, overridesToRemove);
+             }
++            applyAllStaticProfiles();
+         }
+     }
+ 
+@@ -423,10 +543,12 @@ public final class AppCompatOverridesService {
+                 case ACTION_PACKAGE_ADDED:
+                 case ACTION_PACKAGE_CHANGED:
+                     addAllPackageOverrides(packageName);
++                    applyStaticProfile(packageName);
+                     break;
+                 case ACTION_PACKAGE_REMOVED:
+                     if (!isInstalledForAnyUser(packageName)) {
+                         removeAllPackageOverrides(packageName);
++                        removeStaticProfileOverrides(packageName);
+                     }
+                     break;
+                 default:
+diff --git a/services/tests/servicestests/src/com/android/server/compat/overrides/CompatibilityProfileConfigTest.java b/services/tests/servicestests/src/com/android/server/compat/overrides/CompatibilityProfileConfigTest.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c35b3c7561db4a5d7b884c181b4df676c00f0dcb
+--- /dev/null
++++ b/services/tests/servicestests/src/com/android/server/compat/overrides/CompatibilityProfileConfigTest.java
+@@ -0,0 +1,90 @@
++/*
++ * SPDX-FileCopyrightText: 2026 The OSverflow Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++package com.android.server.compat.overrides;
++
++import static org.junit.Assert.assertEquals;
++import static org.junit.Assert.fail;
++
++import android.ext.compat.CompatibilityProfileConfig;
++
++import androidx.test.ext.junit.runners.AndroidJUnit4;
++
++import org.junit.Rule;
++import org.junit.Test;
++import org.junit.rules.TemporaryFolder;
++import org.junit.runner.RunWith;
++
++import java.io.File;
++import java.nio.charset.StandardCharsets;
++import java.nio.file.Files;
++import java.util.List;
++
++@RunWith(AndroidJUnit4.class)
++public class CompatibilityProfileConfigTest {
++    private static final String SIGNER =
++            "0000000000000000000000000000000000000000000000000000000000000000";
++
++    @Rule public final TemporaryFolder mTemp = new TemporaryFolder();
++
++    @Test
++    public void parsesBoundedProfile() throws Exception {
++        var profiles = CompatibilityProfileConfig.load(write(validProfile()));
++
++        assertEquals(1, profiles.size());
++        var profile = profiles.get(0);
++        assertEquals("com.example.app", profile.packageName());
++        assertEquals(3, profile.ownedChangeIds().size());
++        assertEquals(2, profile.overrides().size());
++        assertEquals(SIGNER + "~123:10:20:false,456:10:20:true",
++                profile.toPlatformConfigString());
++    }
++
++    @Test
++    public void rejectsUnboundedOrAmbiguousProfiles() throws Exception {
++        String valid = validProfile();
++        for (String invalid : List.of(
++                valid.replace("profiles=com.example.app",
++                        "profiles=com.example.app,com.example.app"),
++                valid.replace("expires_at_millis=4102444800000", "expires_at_millis=0"),
++                valid.replace("security_impact=reduces_app_security",
++                        "security_impact=unknown"),
++                valid.replace("owned_change_ids=123,456,789",
++                        "owned_change_ids=123,123,789"),
++                valid.replace("overrides=123:false,456:true", "overrides=999:false"),
++                valid.replace("overrides=123:false,456:true", "overrides="),
++                valid.replace("signer_sha256=" + SIGNER + "\n", ""),
++                valid + "com.example.app.typo=true\n")) {
++            assertRejected(invalid);
++        }
++    }
++
++    private void assertRejected(String contents) throws Exception {
++        try {
++            CompatibilityProfileConfig.load(write(contents));
++            fail("invalid profile was accepted");
++        } catch (IllegalArgumentException expected) {
++        }
++    }
++
++    private File write(String contents) throws Exception {
++        File file = mTemp.newFile();
++        Files.writeString(file.toPath(), contents, StandardCharsets.UTF_8);
++        return file;
++    }
++
++    private static String validProfile() {
++        return "profiles=com.example.app\n"
++                + "com.example.app.signer_sha256=" + SIGNER + "\n"
++                + "com.example.app.min_version_code=10\n"
++                + "com.example.app.max_version_code=20\n"
++                + "com.example.app.expires_at_millis=4102444800000\n"
++                + "com.example.app.security_impact=reduces_app_security\n"
++                + "com.example.app.reason=Compatibility test\n"
++                + "com.example.app.retired=false\n"
++                + "com.example.app.owned_change_ids=123,456,789\n"
++                + "com.example.app.overrides=123:false,456:true\n";
++    }
++}

@@ -1,0 +1,209 @@
+diff --git a/res/values-ko/strings.xml b/res/values-ko/strings.xml
+index ae0374fa7fa8b9d56d118f8e92d76ec995ccd71b..0d9b4da6ae73e7db61f3686983707849fe4dc94b 100644
+--- a/res/values-ko/strings.xml
++++ b/res/values-ko/strings.xml
+@@ -6001,4 +6001,18 @@
+     <string name="cellular_call_access_summary">일반 셀룰러 통화를 허용합니다. 긴급통화는 유지되며 모바일 데이터와 SMS에는 영향이 없습니다.</string>
+     <string name="cellular_sms_access_title">SMS 사용</string>
+     <string name="cellular_sms_access_summary">SMS 송수신을 허용합니다. 모바일 데이터와 통화에는 영향이 없습니다.</string>
++    <string name="compatibility_profiles_title">호환성 프로필</string>
++    <string name="compatibility_profiles_dashboard_summary">서명·패키지·버전 범위가 고정된 Android 호환성 예외</string>
++    <string name="compatibility_profiles_empty">설치된 호환성 프로필이 없습니다.</string>
++    <string name="compatibility_profiles_invalid">서명된 프로필 목록이 잘못되었거나 없습니다. 적용된 프로필이 없습니다.</string>
++    <string name="compatibility_profile_summary">상태: %1$s\n보안 영향: %2$s\n만료: %3$s\n이유: %4$s\n패키지: %5$s</string>
++    <string name="compatibility_profile_status_active">활성</string>
++    <string name="compatibility_profile_status_retired">폐기됨</string>
++    <string name="compatibility_profile_status_expired">만료됨</string>
++    <string name="compatibility_profile_status_not_installed">앱이 설치되지 않음</string>
++    <string name="compatibility_profile_status_signer_mismatch">앱 서명 불일치</string>
++    <string name="compatibility_profile_status_version_mismatch">프로필 버전 범위 밖</string>
++    <string name="compatibility_profile_impact_none">보호 감소 없음으로 명시됨</string>
++    <string name="compatibility_profile_impact_app">이 앱의 보호 수준 감소</string>
++    <string name="compatibility_profile_impact_platform">플랫폼 보호 수준 감소</string>
+ </resources>
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+index 3140a246b09a880db628f1dc17549234259319f3..d819ce15eb1490eea16c3b2bd897d3f38d383523 100644
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -14953,4 +14953,18 @@
+     <string name="cellular_call_access_summary">Allow ordinary cellular calls. Emergency calls remain available; mobile data and SMS are unchanged.</string>
+     <string name="cellular_sms_access_title">SMS access</string>
+     <string name="cellular_sms_access_summary">Allow SMS messages. Mobile data and calls are unchanged.</string>
++    <string name="compatibility_profiles_title">Compatibility profiles</string>
++    <string name="compatibility_profiles_dashboard_summary">Signed, package-scoped Android compatibility exceptions</string>
++    <string name="compatibility_profiles_empty">No compatibility profiles are installed.</string>
++    <string name="compatibility_profiles_invalid">The signed profile catalog is invalid or unavailable. No profile was applied.</string>
++    <string name="compatibility_profile_summary">Status: %1$s\nSecurity impact: %2$s\nExpires: %3$s\nReason: %4$s\nPackage: %5$s</string>
++    <string name="compatibility_profile_status_active">Active</string>
++    <string name="compatibility_profile_status_retired">Retired</string>
++    <string name="compatibility_profile_status_expired">Expired</string>
++    <string name="compatibility_profile_status_not_installed">App not installed</string>
++    <string name="compatibility_profile_status_signer_mismatch">Signer mismatch</string>
++    <string name="compatibility_profile_status_version_mismatch">Version outside profile range</string>
++    <string name="compatibility_profile_impact_none">No reduction declared</string>
++    <string name="compatibility_profile_impact_app">Reduces protection for this app</string>
++    <string name="compatibility_profile_impact_platform">Reduces platform protection</string>
+ </resources>
+diff --git a/res/xml/apps.xml b/res/xml/apps.xml
+index b6874973b22129d17858690d1f4036580cfe0fbf..244a5bb1ad3ab680c66eb5b5eede1716c881d06c 100644
+--- a/res/xml/apps.xml
++++ b/res/xml/apps.xml
+@@ -132,6 +132,13 @@
+                    android:value="com.android.settings.Settings$UserAspectRatioAppListActivity"/>
+             <intent android:action="android.settings.MANAGE_USER_ASPECT_RATIO_SETTINGS"/>
+         </Preference>
++
++        <Preference
++            android:key="osverflow_compatibility_profiles"
++            android:title="@string/compatibility_profiles_title"
++            android:summary="@string/compatibility_profiles_dashboard_summary"
++            android:order="23"
++            android:fragment="com.android.settings.applications.CompatibilityProfilesFragment" />
+     </PreferenceCategory>
+ 
+ </PreferenceScreen>
+diff --git a/src/com/android/settings/applications/CompatibilityProfilesFragment.java b/src/com/android/settings/applications/CompatibilityProfilesFragment.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c79dec08a0462c3fc37bd68ac99bef5160c9d8ab
+--- /dev/null
++++ b/src/com/android/settings/applications/CompatibilityProfilesFragment.java
+@@ -0,0 +1,119 @@
++/*
++ * SPDX-FileCopyrightText: 2026 The OSverflow Project
++ * SPDX-License-Identifier: Apache-2.0
++ */
++
++package com.android.settings.applications;
++
++import android.app.settings.SettingsEnums;
++import android.content.pm.ApplicationInfo;
++import android.content.pm.PackageManager;
++import android.ext.compat.CompatibilityProfileConfig;
++import android.ext.compat.CompatibilityProfileConfig.Applicability;
++import android.ext.compat.CompatibilityProfileConfig.Profile;
++import android.os.Bundle;
++import android.text.format.DateFormat;
++import android.util.Log;
++
++import androidx.preference.Preference;
++import androidx.preference.PreferenceScreen;
++
++import com.android.settings.R;
++import com.android.settings.SettingsPreferenceFragment;
++
++import java.io.IOException;
++import java.util.Date;
++import java.util.List;
++
++/** Read-only status for AVB-protected, package-scoped PlatformCompat profiles. */
++public class CompatibilityProfilesFragment extends SettingsPreferenceFragment {
++    private static final String TAG = "CompatibilityProfiles";
++
++    @Override
++    public void onCreate(Bundle savedInstanceState) {
++        super.onCreate(savedInstanceState);
++        setPreferenceScreen(getPreferenceManager().createPreferenceScreen(requireContext()));
++        requireActivity().setTitle(R.string.compatibility_profiles_title);
++    }
++
++    @Override
++    public void onResume() {
++        super.onResume();
++        refresh();
++    }
++
++    private void refresh() {
++        PreferenceScreen screen = getPreferenceScreen();
++        screen.removeAll();
++
++        final List<Profile> profiles;
++        try {
++            profiles = CompatibilityProfileConfig.loadSystem();
++        } catch (IOException | IllegalArgumentException e) {
++            Log.e(TAG, "Unable to read compatibility profiles", e);
++            addStatusPreference(R.string.compatibility_profiles_invalid);
++            return;
++        }
++        if (profiles.isEmpty()) {
++            addStatusPreference(R.string.compatibility_profiles_empty);
++            return;
++        }
++
++        PackageManager pm = requireContext().getPackageManager();
++        long now = System.currentTimeMillis();
++        for (Profile profile : profiles) {
++            Preference preference = new Preference(getPrefContext());
++            preference.setSelectable(false);
++            preference.setTitle(getApplicationLabel(pm, profile.packageName()));
++            preference.setSummary(getString(R.string.compatibility_profile_summary,
++                    getApplicabilityLabel(profile.getApplicability(pm, now)),
++                    getSecurityImpactLabel(profile.securityImpact()),
++                    DateFormat.getDateFormat(requireContext())
++                            .format(new Date(profile.expiresAtMillis())),
++                    profile.reason(), profile.packageName()));
++            screen.addPreference(preference);
++        }
++    }
++
++    private void addStatusPreference(int summaryRes) {
++        Preference preference = new Preference(getPrefContext());
++        preference.setSelectable(false);
++        preference.setSummary(summaryRes);
++        getPreferenceScreen().addPreference(preference);
++    }
++
++    private CharSequence getApplicationLabel(PackageManager pm, String packageName) {
++        try {
++            ApplicationInfo appInfo = pm.getApplicationInfo(packageName,
++                    PackageManager.MATCH_ANY_USER);
++            return pm.getApplicationLabel(appInfo);
++        } catch (PackageManager.NameNotFoundException e) {
++            return packageName;
++        }
++    }
++
++    private String getApplicabilityLabel(Applicability applicability) {
++        return getString(switch (applicability) {
++            case ACTIVE -> R.string.compatibility_profile_status_active;
++            case RETIRED -> R.string.compatibility_profile_status_retired;
++            case EXPIRED -> R.string.compatibility_profile_status_expired;
++            case NOT_INSTALLED -> R.string.compatibility_profile_status_not_installed;
++            case SIGNER_MISMATCH -> R.string.compatibility_profile_status_signer_mismatch;
++            case VERSION_MISMATCH -> R.string.compatibility_profile_status_version_mismatch;
++        });
++    }
++
++    private String getSecurityImpactLabel(
++            CompatibilityProfileConfig.SecurityImpact securityImpact) {
++        return getString(switch (securityImpact) {
++            case NONE -> R.string.compatibility_profile_impact_none;
++            case REDUCES_APP_SECURITY -> R.string.compatibility_profile_impact_app;
++            case REDUCES_PLATFORM_SECURITY -> R.string.compatibility_profile_impact_platform;
++        });
++    }
++
++    @Override
++    public int getMetricsCategory() {
++        return SettingsEnums.MANAGE_APPLICATIONS;
++    }
++}
+diff --git a/src/com/android/settings/core/gateway/SettingsGateway.java b/src/com/android/settings/core/gateway/SettingsGateway.java
+index 4b86248264a7537bdbf5f15214843d1be6fb1ae9..3c884fca42b63a9168187905cc9cfa125e933857 100644
+--- a/src/com/android/settings/core/gateway/SettingsGateway.java
++++ b/src/com/android/settings/core/gateway/SettingsGateway.java
+@@ -45,6 +45,7 @@ import com.android.settings.accounts.AccountSyncSettings;
+ import com.android.settings.accounts.ChooseAccountFragment;
+ import com.android.settings.accounts.ManagedProfileSettings;
+ import com.android.settings.applications.AppDashboardFragment;
++import com.android.settings.applications.CompatibilityProfilesFragment;
+ import com.android.settings.applications.AppStorageSettings;
+ import com.android.settings.applications.ProcessStatsSummary;
+ import com.android.settings.applications.ProcessStatsUi;
+@@ -368,6 +369,7 @@ public class SettingsGateway {
+             ConnectedDeviceDashboardFragment.class.getName(),
+             UsbDetailsFragment.class.getName(),
+             AppDashboardFragment.class.getName(),
++            CompatibilityProfilesFragment.class.getName(),
+             WifiCallingDisclaimerFragment.class.getName(),
+             AccountDashboardFragment.class.getName(),
+             EnterprisePrivacySettings.class.getName(),

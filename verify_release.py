@@ -28,6 +28,10 @@ REQUIRED = (
     "features/privacy-lock/patches/0001-frameworks-base-privacy-lock.patch",
     "features/cellular-service-controls/patches/0001-telephony-sms-access-gate.patch",
     "features/cellular-service-controls/patches/0002-teleservice-call-access-gate.patch",
+    "features/cellular-service-controls/patches/0003-settings-cellular-service-controls.patch",
+    "features/security-suite-05678/patches/0002-frameworks-base-inactivity-reboot.patch",
+    "features/security-suite-05678/patches/0003-frameworks-base-compatibility-profiles.patch",
+    "features/security-suite-05678/patches/0004-settings-compatibility-profiles.patch",
 )
 
 SPDX_REQUIRED = (
@@ -36,12 +40,13 @@ SPDX_REQUIRED = (
     "features/tailscadble/verify_export.py",
     "features/craftedg/src/org/osverflow/craftedg/scopedkeystore/ScopedKeyStore.java",
     "features/craftedg/test/org/osverflow/craftedg/scopedkeystore/ScopedKeyStoreTest.java",
-    "features/cellular-service-controls/reference/packages/apps/Settings/src/com/android/settings/privacy/CellularServiceToggleController.java",
-    "features/security-suite-05678/reference/frameworks/base/core/java/android/ext/compat/CompatibilityProfileConfig.java",
-    "features/security-suite-05678/reference/frameworks/base/services/core/java/com/android/server/ext/InactivityRebootService.java",
-    "features/security-suite-05678/reference/frameworks/base/services/tests/servicestests/src/com/android/server/compat/overrides/CompatibilityProfileConfigTest.java",
-    "features/security-suite-05678/reference/frameworks/base/services/tests/servicestests/src/com/android/server/ext/InactivityRebootServiceTest.java",
-    "features/security-suite-05678/reference/packages/apps/Settings/src/com/android/settings/applications/CompatibilityProfilesFragment.java",
+)
+
+PATCH_SPDX_REQUIRED = (
+    "features/cellular-service-controls/patches/0003-settings-cellular-service-controls.patch",
+    "features/security-suite-05678/patches/0002-frameworks-base-inactivity-reboot.patch",
+    "features/security-suite-05678/patches/0003-frameworks-base-compatibility-profiles.patch",
+    "features/security-suite-05678/patches/0004-settings-compatibility-profiles.patch",
 )
 
 FORBIDDEN_SUFFIXES = {
@@ -116,6 +121,10 @@ def verify_spdx() -> None:
         text = (ROOT / relative).read_text(encoding="utf-8")
         if "SPDX-License-Identifier: Apache-2.0" not in text:
             raise SystemExit(f"missing Apache-2.0 SPDX identifier: {relative}")
+    for relative in PATCH_SPDX_REQUIRED:
+        text = (ROOT / relative).read_text(encoding="utf-8")
+        if "+ * SPDX-License-Identifier: Apache-2.0" not in text:
+            raise SystemExit(f"missing Apache-2.0 SPDX marker in added patch source: {relative}")
 
 
 def verify_tailscadble() -> None:

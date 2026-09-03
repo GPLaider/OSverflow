@@ -12,23 +12,24 @@ The accepted Lyriq sequence was deliberately built in this order:
 
 ## Export status
 
-Features 0 and 5 are documented native/upstream reuse. Feature 6 includes its
-service, policy test, and LineageParts patch. Feature 7 includes the exact minimal
-overlay recipe. Feature 8 includes the parser, service patch, Android test,
-read-only Settings fragment, empty catalog, and integration snippets.
+Features 0 and 5 are documented native/upstream reuse. Feature 6 includes clean
+framework and LineageParts patches with its policy test. Feature 7 includes the
+exact minimal device-overlay recipe. Feature 8 includes clean framework and
+Settings patches with its parser, service, Android test, read-only UI, and an
+empty device catalog.
 
-This directory is **not yet a one-command replay stack**. The accepted Lyriq ROM
-used an existing `SystemServerExt` extension point and a device tree that is not
-yet under clean public Git history. Downstream projects must integrate the
-reference files at their corresponding platform points and run a full build,
-signer, partition, AVB, OTA, and device acceptance matrix.
+The Android project patches are independently replayable at their exact source
+anchors. The Lyriq device overlay is still a merge recipe because that device
+tree is not yet under clean public Git history. A downstream release must also
+run the full build, signer, partition, AVB, OTA, and device acceptance matrix.
 
 ## Source anchors
 
 - `frameworks/base`: `aaa4284f7e061771afb58c789924397111487e62`
 - `packages/apps/Settings`: `adf61c13902a2789c965e6d74de5c466f5603b55`
 - `packages/apps/LineageParts`: `df5dd9d53b01553168fd9c57e5c6b8bc8b4550c7`
-- Lyriq device overlay: currently unmanaged source; public replay blocker
+- Lyriq device overlay: deterministic recipe, but still awaiting a clean public
+  device-tree anchor
 
 ## Security invariants
 

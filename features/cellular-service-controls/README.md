@@ -14,17 +14,15 @@ or cell-broadcast emergency alerts.
 
 ## Source anchors
 
-| Patch/reference | Android project | Revision |
+| Patch | Android project | Revision |
 | --- | --- | --- |
 | `0001-telephony-sms-access-gate.patch` | `frameworks/opt/telephony` | `21e2e9fc3cf0992bd91863aa33784ec5b24a806a` |
 | `0002-teleservice-call-access-gate.patch` | `packages/services/Telephony` | `95e95093d0e9cca76b86906d414a7da6b95d45fe` |
-| Settings controller and snippets | `packages/apps/Settings` | `adf61c13902a2789c965e6d74de5c466f5603b55` |
+| `0003-settings-cellular-service-controls.patch` | `packages/apps/Settings` | `adf61c13902a2789c965e6d74de5c466f5603b55` |
 
-The Settings reference uses `Settings.Global` keys `osverflow_call_access` and
-`osverflow_sms_access`, both defaulting to enabled. Copy the controller and merge
-the two XML fragments into the downstream Settings resources; review product
-policy and translations rather than applying them blindly.
+The Settings patch uses `Settings.Global` keys `osverflow_call_access` and
+`osverflow_sms_access`, both defaulting to enabled. Review product policy and
+translations before applying it to another device.
 
-These patches correspond to the accepted Lyriq implementation, but the portable
-export has not been rebuilt as a standalone downstream patch stack. Carrier
-behavior remains a physical-device acceptance gate.
+The three patches form a replayable downstream stack at the exact source
+anchors. Carrier behavior remains a physical-device acceptance gate.

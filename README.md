@@ -18,8 +18,8 @@ and proprietary redistribution review remain open.
 | [Tailscadble](features/tailscadble/README.md) | patch export | Four anchored Android patches, threat model, test plan, host verifier |
 | [CraftedG](features/craftedg/README.md) | host reference | Default-deny, process-scoped stock KeyStore delegation; no verdict or certificate manipulation |
 | [Privacy Lock](features/privacy-lock/README.md) | patch export | Framework service gates for camera, microphone, and location locks |
-| [Cellular Service Controls](features/cellular-service-controls/README.md) | patch + reference | Independent call and SMS gates while cellular data stays provisioned |
-| [Security Suite 0/5/6/7/8](features/security-suite-05678/README.md) | mixed export | Verified-update model, USB restriction reuse, inactivity reboot, Disposable Space, compatibility profiles |
+| [Cellular Service Controls](features/cellular-service-controls/README.md) | patch export | Independent call and SMS gates plus Settings UI while cellular data stays provisioned |
+| [Security Suite 0/5/6/7/8](features/security-suite-05678/README.md) | patch + device recipe | Verified-update model, USB restriction reuse, inactivity reboot, Disposable Space, compatibility profiles |
 
 See [feature status](docs/FEATURES.md), [release model](docs/RELEASE_MODEL.md),
 [license audit](docs/LICENSE_AUDIT.md), and

@@ -1,0 +1,122 @@
+diff --git a/res/values-ko/strings.xml b/res/values-ko/strings.xml
+index 3713dd1ba4f16ed5210c377055525d6a1e855579..ae0374fa7fa8b9d56d118f8e92d76ec995ccd71b 100644
+--- a/res/values-ko/strings.xml
++++ b/res/values-ko/strings.xml
+@@ -5997,4 +5997,8 @@
+     <string name="safety_center_account_security_search_terms" msgid="3950829613581775913"></string>
+     <string name="safety_center_device_finder_search_terms" msgid="452013643838126923"></string>
+     <string name="safety_center_system_component_update_search_terms" msgid="3110390275537109543"></string>
++    <string name="cellular_call_access_title">통화 사용</string>
++    <string name="cellular_call_access_summary">일반 셀룰러 통화를 허용합니다. 긴급통화는 유지되며 모바일 데이터와 SMS에는 영향이 없습니다.</string>
++    <string name="cellular_sms_access_title">SMS 사용</string>
++    <string name="cellular_sms_access_summary">SMS 송수신을 허용합니다. 모바일 데이터와 통화에는 영향이 없습니다.</string>
+ </resources>
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+index ccc591fa44d5e3f89a9e57dc8641a0a2c4a45038..3140a246b09a880db628f1dc17549234259319f3 100644
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -14949,4 +14949,8 @@
+     <string name="safety_center_device_finder_search_terms"></string>
+     <!-- Safety Center system component update search terms [CHAR LIMIT=NONE] -->
+     <string name="safety_center_system_component_update_search_terms"></string>
++    <string name="cellular_call_access_title">Call access</string>
++    <string name="cellular_call_access_summary">Allow ordinary cellular calls. Emergency calls remain available; mobile data and SMS are unchanged.</string>
++    <string name="cellular_sms_access_title">SMS access</string>
++    <string name="cellular_sms_access_summary">Allow SMS messages. Mobile data and calls are unchanged.</string>
+ </resources>
+diff --git a/res/xml/privacy_dashboard_settings.xml b/res/xml/privacy_dashboard_settings.xml
+index 22fe00258d5d4fbe8f8a48176aa7d47bafc4f1ed..a046a32f6952ffb2c94100e814536867ea7a4bcd 100644
+--- a/res/xml/privacy_dashboard_settings.xml
++++ b/res/xml/privacy_dashboard_settings.xml
+@@ -85,6 +85,18 @@
+         android:summary="@string/mic_toggle_description"
+         settings:controller="com.android.settings.privacy.MicToggleController"/>
+ 
++    <SwitchPreferenceCompat
++        android:key="privacy_call_access"
++        android:title="@string/cellular_call_access_title"
++        android:summary="@string/cellular_call_access_summary"
++        settings:controller="com.android.settings.privacy.CellularServiceToggleController" />
++
++    <SwitchPreferenceCompat
++        android:key="privacy_sms_access"
++        android:title="@string/cellular_sms_access_title"
++        android:summary="@string/cellular_sms_access_summary"
++        settings:controller="com.android.settings.privacy.CellularServiceToggleController" />
++
+     <!-- Show passwords -->
+     <SwitchPreferenceCompat
+         android:key="show_password"
+diff --git a/src/com/android/settings/privacy/CellularServiceToggleController.java b/src/com/android/settings/privacy/CellularServiceToggleController.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..5c5a261fbbbc443b7824d7d4322fdea5f3550da3
+--- /dev/null
++++ b/src/com/android/settings/privacy/CellularServiceToggleController.java
+@@ -0,0 +1,67 @@
++/*
++ * SPDX-FileCopyrightText: 2026 The OSverflow Project
++ * SPDX-License-Identifier: Apache-2.0
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.settings.privacy;
++
++import android.content.Context;
++import android.content.pm.PackageManager;
++import android.provider.Settings;
++
++import com.android.settings.R;
++import com.android.settings.core.TogglePreferenceController;
++
++/** Controls OSverflow's device-wide cellular call and SMS access gates. */
++public final class CellularServiceToggleController extends TogglePreferenceController {
++    private static final String KEY_CALL_ACCESS = "privacy_call_access";
++    private static final String KEY_SMS_ACCESS = "privacy_sms_access";
++    private static final String SETTING_CALL_ACCESS = "osverflow_call_access";
++    private static final String SETTING_SMS_ACCESS = "osverflow_sms_access";
++
++    private final String mSetting;
++
++    public CellularServiceToggleController(Context context, String key) {
++        super(context, key);
++        if (KEY_CALL_ACCESS.equals(key)) {
++            mSetting = SETTING_CALL_ACCESS;
++        } else if (KEY_SMS_ACCESS.equals(key)) {
++            mSetting = SETTING_SMS_ACCESS;
++        } else {
++            throw new IllegalArgumentException("Unknown cellular service toggle: " + key);
++        }
++    }
++
++    @Override
++    public boolean isChecked() {
++        return Settings.Global.getInt(mContext.getContentResolver(), mSetting, 1) != 0;
++    }
++
++    @Override
++    public boolean setChecked(boolean isChecked) {
++        return Settings.Global.putInt(mContext.getContentResolver(), mSetting, isChecked ? 1 : 0);
++    }
++
++    @Override
++    public int getAvailabilityStatus() {
++        return mContext.getPackageManager().hasSystemFeature(PackageManager.FEATURE_TELEPHONY)
++                ? AVAILABLE : UNSUPPORTED_ON_DEVICE;
++    }
++
++    @Override
++    public int getSliceHighlightMenuRes() {
++        return R.string.menu_key_privacy;
++    }
++}

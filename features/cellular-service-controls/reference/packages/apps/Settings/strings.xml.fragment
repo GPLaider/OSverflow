@@ -1,4 +1,0 @@
-<string name="cellular_call_access_title">Call access</string>
-<string name="cellular_call_access_summary">Allow ordinary cellular calls. Emergency calls remain available; mobile data and SMS are unchanged.</string>
-<string name="cellular_sms_access_title">SMS access</string>
-<string name="cellular_sms_access_summary">Allow SMS messages. Mobile data and calls are unchanged.</string>
