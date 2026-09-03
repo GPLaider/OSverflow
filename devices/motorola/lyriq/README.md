@@ -3,6 +3,12 @@
 OSverflow's first support target is the Motorola Edge 40 XT2303-2 with stock
 firmware baseline `V1TLS35.73-60-3-14` and an unlocked bootloader.
 
+The sanitized device integration is maintained separately in
+[`android_device_motorola_lyriq`](https://github.com/GPLaider/android_device_motorola_lyriq).
+Its frozen RC1 hardware-prebuilt contract is
+`V1TLS35.73-60-3-10` / `40dcc-72d036`; this is not the same as the first-install
+baseline and remains an explicit release blocker.
+
 Current status: **release candidate**. Two XT2303-2 units accepted the frozen RC1
 through recorded slot and full Virtual A/B update flows. This repository does not
 yet contain a public first-install image or authorize bootloader relocking.

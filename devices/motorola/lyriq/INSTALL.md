@@ -11,3 +11,8 @@ Before public installation instructions are added, the spare XT2303-2 must pass 
 clean install from `V1TLS35.73-60-3-14`, normal boot, feature smoke tests, failed-
 update recovery, and rollback using the exact published files. Bootloader
 relocking remains unsupported.
+
+The frozen RC1 build graph pins hardware payloads from
+`V1TLS35.73-60-3-10` / `40dcc-72d036`. A public installer must resolve and test
+that cross-version firmware contract instead of assuming the two baselines are
+interchangeable.

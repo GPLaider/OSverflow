@@ -111,6 +111,9 @@ def verify_device_metadata() -> None:
     assert support["device"]["codename"] == "lyriq"
     assert support["device"]["models"] == ["XT2303-2"]
     assert support["support_status"] == "release-candidate"
+    assert support["required_stock_baseline"] == "V1TLS35.73-60-3-14"
+    assert support["hardware_prebuilt_source_build"] == "V1TLS35.73-60-3-10/40dcc-72d036"
+    assert support["device_source_repository"] == "https://github.com/GPLaider/android_device_motorola_lyriq"
     assert support["bootloader"]["unlock_required"] is True
     assert support["bootloader"]["relocking_supported"] is False
     assert support["public_install_artifact"] is None
