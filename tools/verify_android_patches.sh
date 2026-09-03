@@ -64,6 +64,7 @@ check_head packages/providers/DownloadProvider 6d2a304dc8237b2da9910799380636fe5
 check_head system/tools/aidl 3747384b876442e7ea0c355fe5adc75b29362833
 check_head packages/modules/adb 262cc9ada912c17f30f3130ae22e8012be4e10fe
 check_head system/sepolicy 885cc500f6078a766d1f6def5ce4c06c55841773
+check_head packages/apps/GmsCompat ec541b9f7ff42faad5aa553e4bb255014aec2527
 check_head build/make 5a841be38fec92de9a8a408cf5812ca748ccc02e
 check_head device/lineage/sepolicy c6e972cf4ff9bd472052b29cf8eae7bc3e70d378
 check_head external/selinux 085c131ad1b984bfa8ffdafee7a976e9d89f403c
@@ -105,6 +106,8 @@ check_series packages/providers/DownloadProvider \
 check_series system/tools/aidl features/gmscompat/patches/0015-aidl.patch
 check_series packages/modules/adb features/tailscadble/patches/0001-adb-specific-listener.patch
 check_series system/sepolicy features/tailscadble/patches/0004-sepolicy-listen-property.patch
+check_series packages/apps/GmsCompat \
+  features/gmscompat/patches/0016-gmscompat-app-lineage-adapter.patch
 check_series build/make \
   features/lyriq-platform-support/patches/0001-build-make-preserve-hybrid-payloads.patch
 check_series device/lineage/sepolicy \
