@@ -16,3 +16,7 @@ The frozen RC1 build graph pins hardware payloads from
 `V1TLS35.73-60-3-10` / `40dcc-72d036`. A public installer must resolve and test
 that cross-version firmware contract instead of assuming the two baselines are
 interchangeable.
+
+The device-source repository now contains a verified, non-downloading extractor
+for that exact `-3-10` input contract. It rejects `-3-14` rather than silently
+mixing firmware; support for the declared installation baseline remains open.
