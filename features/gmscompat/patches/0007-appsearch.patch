@@ -1,0 +1,43 @@
+diff --git a/flags/Android.bp b/flags/Android.bp
+index ef4b7e61c32bbdf2393b31cfdfc71382cd44998b..8825ded06a6152e6a95cecc0a5837a387c8f9c1b 100644
+--- a/flags/Android.bp
++++ b/flags/Android.bp
+@@ -19,6 +19,7 @@ java_aconfig_library {
+         "//cts/tests/appfunctions:__subpackages__",
+         "//cts/tests/appsearch:__subpackages__",
+         "//frameworks/base",
++        "//packages/apps/GmsCompat:__subpackages__",
+         "//packages/modules/AppSearch/testing:__subpackages__",
+         "//packages/modules/Permission/tests/cts/permissionpolicy",
+     ],
+diff --git a/framework/Android.bp b/framework/Android.bp
+index 6c96abbad6bad715859e4f8b55a107e36bcfbc32..e84ef501b50d28cdb850ff325140fe0c5ec39059 100644
+--- a/framework/Android.bp
++++ b/framework/Android.bp
+@@ -52,6 +52,14 @@ filegroup {
+     path: "java/external",
+ }
+ 
++filegroup {
++    name: "framework-appsearch-safeparcel-sources",
++    srcs: [
++        "java/android/app/appsearch/safeparcel/*.java",
++    ],
++    path: "java",
++}
++
+ java_sdk_library {
+     name: "framework-appsearch",
+     srcs: [":framework-appsearch-sources"],
+diff --git a/safeparcel-processor/Android.bp b/safeparcel-processor/Android.bp
+index 45ec46646badfe4a223a7ce52c1e8f0e841cf220..3224ed6cd8e6fa4f74e8676941537f1992d43e31 100644
+--- a/safeparcel-processor/Android.bp
++++ b/safeparcel-processor/Android.bp
+@@ -47,6 +47,7 @@ java_plugin {
+     // the turbine output that can be produced much faster.
+     generates_api: true,
+     visibility: [
++        "//packages/apps/GmsCompat:__subpackages__",
+         "//packages/modules/AppSearch:__subpackages__",
+     ],
+ }

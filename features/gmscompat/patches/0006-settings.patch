@@ -1,0 +1,94 @@
+diff --git a/res/values/strings.xml b/res/values/strings.xml
+index ccc591fa44d5e3f89a9e57dc8641a0a2c4a45038..1e704778f5bbe4b90fbd19b72028b6e7c00c5479 100644
+--- a/res/values/strings.xml
++++ b/res/values/strings.xml
+@@ -10753,6 +10753,9 @@
+     <!-- Permissions usage summary, which describes what the permissions usage does [CHAR LIMIT=NONE] -->
+     <string name="permissions_usage_summary">Show which apps recently used permissions</string>
+ 
++    <string name="sandboxed_google_play">Sandboxed Google Play</string>
++    <string name="sandboxed_google_play_work_profile">Sandboxed Google Play (work profile)</string>
++
+     <!-- Label for showing apps that have not been used for months. [CHAR LIMIT=40]-->
+     <string name="unused_apps">Unused apps</string>
+ 
+diff --git a/res/xml/apps.xml b/res/xml/apps.xml
+index b6874973b22129d17858690d1f4036580cfe0fbf..12f5a610a3538b1b3445a55b964ab8e345d3af20 100644
+--- a/res/xml/apps.xml
++++ b/res/xml/apps.xml
+@@ -75,6 +75,19 @@
+             android:targetPackage="${applicationId}"/>
+     </Preference>
+ 
++    <Preference
++        android:key="sandboxed_google_play"
++        android:title="@string/sandboxed_google_play"
++        android:order="-980"
++        settings:controller="com.android.settings.applications.GmsCompatAppController"/>
++
++    <Preference
++        android:key="sandboxed_google_play_work_profile"
++        android:title="@string/sandboxed_google_play_work_profile"
++        android:order="-979"
++        settings:forWork="true"
++        settings:controller="com.android.settings.applications.GmsCompatAppController"/>
++
+     <PreferenceCategory
+         android:key="dashboard_tile_placeholder"
+         android:order="10"/>
+diff --git a/src/com/android/settings/applications/GmsCompatAppController.java b/src/com/android/settings/applications/GmsCompatAppController.java
+new file mode 100644
+index 0000000000000000000000000000000000000000..c9f105115f3e2c35b11873fc5f8aa88307a71e98
+--- /dev/null
++++ b/src/com/android/settings/applications/GmsCompatAppController.java
+@@ -0,0 +1,50 @@
++package com.android.settings.applications;
++
++import android.app.compat.gms.GmsCompat;
++import android.content.Context;
++import android.content.Intent;
++import android.os.UserHandle;
++import android.text.TextUtils;
++
++import androidx.preference.Preference;
++
++import com.android.internal.gmscompat.GmsCompatApp;
++import com.android.internal.gmscompat.GmsInfo;
++import com.android.settings.core.BasePreferenceController;
++
++public class GmsCompatAppController extends BasePreferenceController {
++
++    public GmsCompatAppController(Context context, String key) {
++        super(context, key);
++    }
++
++    @Override
++    public int getAvailabilityStatus() {
++        UserHandle workProfile = getWorkProfileUser();
++        int userId = workProfile != null
++                ? workProfile.getIdentifier()
++                : UserHandle.myUserId();
++
++        return GmsCompat.isEnabledFor(GmsInfo.PACKAGE_GMS_CORE, userId)
++                ? AVAILABLE
++                : DISABLED_FOR_USER;
++    }
++
++    @Override
++    public boolean handlePreferenceTreeClick(Preference preference) {
++        if (!TextUtils.equals(preference.getKey(), getPreferenceKey())) {
++            return false;
++        }
++
++        Intent intent = new Intent(GmsCompatApp.PKG_NAME + ".SETTINGS_LINK");
++        intent.setPackage(GmsCompatApp.PKG_NAME);
++
++        UserHandle workProfile = getWorkProfileUser();
++        if (workProfile != null) {
++            mContext.startActivityAsUser(intent, workProfile);
++        } else {
++            mContext.startActivity(intent);
++        }
++        return true;
++    }
++}

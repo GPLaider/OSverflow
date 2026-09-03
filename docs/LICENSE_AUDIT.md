@@ -33,6 +33,15 @@ build.
   anchored patches.
 - Device metadata and integration recipes: Apache-2.0.
 
+## Upstream-derived GmsCompat package
+
+The GmsCompat platform adaptations are derived from GrapheneOS Android platform
+work and retain Apache-2.0 project ownership and notices. The companion
+GmsCompat application and configuration holder are GrapheneOS MIT-licensed work;
+the exact public source/prebuilt revisions and MIT text are recorded under
+`features/gmscompat/`. OSverflow claims authorship only for its narrow LineageOS
+adapter and rebase, not for GmsCompat itself.
+
 ## Excluded material
 
 No Motorola/MediaTek proprietary image, firmware, APK, signing key, keybox,

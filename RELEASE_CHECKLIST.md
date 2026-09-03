@@ -3,6 +3,8 @@
 ## Source RC — required before repository publication
 
 - [x] Tailscadble export verifier passes.
+- [x] Upstream-derived GmsCompat platform patches are rebased onto exact clean
+      Lineage project anchors; integrity/key/certificate experiments are excluded.
 - [x] CraftedG JDK 17 compile and assertion test pass.
 - [x] Reusable privacy, call, and SMS patches are separated from the dirty ROM tree.
 - [x] Feature and Lyriq status distinguish device acceptance from export validation.

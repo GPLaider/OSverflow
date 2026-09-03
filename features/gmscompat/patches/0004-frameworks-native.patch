@@ -1,0 +1,18 @@
+diff --git a/services/surfaceflinger/SurfaceFlinger.cpp b/services/surfaceflinger/SurfaceFlinger.cpp
+index 0ab1a9b81266f63896c3f4e24fa9b6d26caef860..d7fdce6cbc4c1e1101a990f352cfd5e6c019a0d6 100644
+--- a/services/surfaceflinger/SurfaceFlinger.cpp
++++ b/services/surfaceflinger/SurfaceFlinger.cpp
+@@ -6360,9 +6360,10 @@ status_t SurfaceFlinger::doDump(int fd, const DumpArgs& args, bool asProto) {
+     const int uid = ipc->getCallingUid();
+ 
+     if ((uid != AID_SHELL) && !PermissionCache::checkPermission(sDump, pid, uid)) {
+-        StringAppendF(&result, "Permission Denial: can't dump SurfaceFlinger from pid=%d, uid=%d\n",
+-                      pid, uid);
+-        write(fd, result.c_str(), result.size());
++        ALOGD("doDump: callingPid %i, callingUid %i, asProto %i", pid, uid, (int) asProto);
++        for (auto &arg : args) {
++            ALOGD("doDump: arg %s", String8(arg).c_str());
++        }
+         return NO_ERROR;
+     }
+ 

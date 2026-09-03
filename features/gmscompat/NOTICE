@@ -1,0 +1,14 @@
+OSverflow GmsCompat source adaptation
+
+The Android platform patch set is derived from the GrapheneOS sandboxed Google
+Play compatibility implementation and is rebased onto LineageOS 23.2 projects.
+Those Android platform projects remain governed by their Apache License 2.0
+licenses and notices.
+
+The GmsCompat app and configuration-holder sources are GrapheneOS work under
+the MIT license. The app source anchor used here is carried by the public
+VoltageOS fork. OSverflow is not affiliated with or endorsed by GrapheneOS,
+VoltageOS, Google, or LineageOS.
+
+No keybox, private key, certificate replacement, service-verdict manipulation,
+or build/signature/security-patch spoofing code is part of this package.

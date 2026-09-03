@@ -1,6 +1,6 @@
 diff --git a/services/core/java/com/android/server/ext/InactivityRebootService.java b/services/core/java/com/android/server/ext/InactivityRebootService.java
 new file mode 100644
-index 0000000000000000000000000000000000000000..240e10202aea8a40f4f4b824367e8e917ff8bcef
+index 0000000000000000000000000000000000000000..52810033a95009f91b088f8733cdbe54a8e3296a
 --- /dev/null
 +++ b/services/core/java/com/android/server/ext/InactivityRebootService.java
 @@ -0,0 +1,204 @@
@@ -31,7 +31,7 @@ index 0000000000000000000000000000000000000000..240e10202aea8a40f4f4b824367e8e91
 +
 +import lineageos.providers.LineageSettings;
 +
-+public final class InactivityRebootService {
++final class InactivityRebootService {
 +    static final String SETTING = "osverflow_inactivity_reboot_timeout_ms";
 +    static final int TEST_TIMEOUT_MS = 60_000;
 +    static final int ONE_HOUR_MS = 60 * 60 * 1000;
@@ -61,7 +61,7 @@ index 0000000000000000000000000000000000000000..240e10202aea8a40f4f4b824367e8e91
 +    private long mAlarmGeneration;
 +    private AlarmManager.OnAlarmListener mAlarmListener;
 +
-+    public static void init(Context context, Handler handler) {
++    static void init(Context context, Handler handler) {
 +        new InactivityRebootService(context, handler).start();
 +    }
 +
@@ -208,23 +208,18 @@ index 0000000000000000000000000000000000000000..240e10202aea8a40f4f4b824367e8e91
 +        return 0;
 +    }
 +}
-diff --git a/services/java/com/android/server/SystemServer.java b/services/java/com/android/server/SystemServer.java
-index a184d6a7efe8e72a0f5eb781e2f541b55ebb9104..76d68c3e669189071b52b19ea847b085b47a7422 100644
---- a/services/java/com/android/server/SystemServer.java
-+++ b/services/java/com/android/server/SystemServer.java
-@@ -3604,6 +3604,12 @@ public final class SystemServer implements Dumpable {
-                 reportWtf("Triggering OdsignStatsLogger", e);
-             }
-             t.traceEnd();
-+
-+            final android.os.Handler osverflowBgHandler =
-+                    com.android.internal.os.BackgroundThread.getHandler();
-+            osverflowBgHandler.post(() ->
-+                    com.android.server.ext.InactivityRebootService.init(
-+                            mSystemContext, osverflowBgHandler));
-         }, t);
+diff --git a/services/core/java/com/android/server/ext/SystemServerExt.java b/services/core/java/com/android/server/ext/SystemServerExt.java
+index df1138df0e0549df27e57cdbe3eeb78a7118c45a..bff63a254b9798acce83ef9510113cd03c16f44c 100644
+--- a/services/core/java/com/android/server/ext/SystemServerExt.java
++++ b/services/core/java/com/android/server/ext/SystemServerExt.java
+@@ -34,6 +34,6 @@ public final class SystemServerExt {
+     }
  
-         t.traceBegin("LockSettingsThirdPartyAppsStarted");
+     void initBgThread() {
+-
++        InactivityRebootService.init(context, bgHandler);
+     }
+ }
 diff --git a/services/tests/servicestests/src/com/android/server/ext/InactivityRebootServiceTest.java b/services/tests/servicestests/src/com/android/server/ext/InactivityRebootServiceTest.java
 new file mode 100644
 index 0000000000000000000000000000000000000000..e9e5fd875fea6d3199341190fc636231928d506e

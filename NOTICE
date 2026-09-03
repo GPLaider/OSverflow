@@ -15,5 +15,10 @@ CraftedG's public reference contains no GrapheneOS, VoltageOS, PlayIntegrityFork
 TrickyStore, keybox, private key, certificate replacement, or service-verdict
 code. Its provenance and exclusions are documented beside the source.
 
+The sandboxed Google Play compatibility patch package is upstream-derived from
+GrapheneOS Android platform work. Its companion application and configuration
+holder are GrapheneOS MIT-licensed work, with the exact license and public
+source anchors retained in `features/gmscompat/`.
+
 OSverflow is not affiliated with or endorsed by AOSP, LineageOS, GrapheneOS,
 Motorola, MediaTek, Google, F-Droid, or Tailscale.

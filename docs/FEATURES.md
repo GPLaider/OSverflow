@@ -16,6 +16,7 @@ The labels below are intentionally strict:
 | Disposable Space | device accepted | native-overlay recipe | Forced-ephemeral full guest; no custom deletion daemon |
 | Compatibility Profiles | device accepted with empty catalog | public framework/Settings patches verified | Exact package, signer, version, expiry, owned change IDs; no global weakening switch |
 | Tailscadble | core path device accepted | public patch verified | Exact active Tailscale IPv4 listener; normal ADB authorization retained |
+| Sandboxed Google Play compatibility | device accepted in the private RC1 integration | upstream-derived platform patches exported | GrapheneOS/VoltageOS provenance retained; config version 170 pinned; no integrity-verdict or key/certificate manipulation |
 | Privacy Lock | device accepted | framework patch exported | OFF cannot be cleared by ordinary software reminder paths |
 | Call access control | device accepted on recorded carrier path | TeleService + Settings patches verified | Ordinary cellular calls only; emergency path retained |
 | SMS access control | device accepted on recorded carrier path | telephony + Settings patches verified | Point-to-point SMS transport; not RCS or generic IP data |

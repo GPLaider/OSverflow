@@ -16,6 +16,7 @@ and proprietary redistribution review remain open.
 | Component | Public status | What is here |
 | --- | --- | --- |
 | [Tailscadble](features/tailscadble/README.md) | patch export | Four anchored Android patches, threat model, test plan, host verifier |
+| [Sandboxed Google Play compatibility](features/gmscompat/README.md) | upstream-derived patch export | Fifteen platform adaptations, one Lineage app adapter, and pinned public GrapheneOS config input |
 | [CraftedG](features/craftedg/README.md) | host reference | Default-deny, process-scoped stock KeyStore delegation; no verdict or certificate manipulation |
 | [Privacy Lock](features/privacy-lock/README.md) | patch export | Framework service gates for camera, microphone, and location locks |
 | [Cellular Service Controls](features/cellular-service-controls/README.md) | patch export | Independent call and SMS gates plus Settings UI while cellular data stays provisioned |

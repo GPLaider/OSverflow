@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "status": "upstream-derived-source-rc",
+  "lineage_manifest_commit": "5c3bbcbf9364c096cbe9a361af998e0bc398bdc6",
+  "patches": [
+    {
+      "project": "art",
+      "base": "1690c6912a7972c9e62c39b48c706de9b8b18b4a",
+      "patch": "patches/0001-art.patch",
+      "sha256": "e3c7ddbede08fa22d316e9ad1fda171187fc3050006d5780bae62779752138d3"
+    },
+    {
+      "project": "bionic",
+      "base": "7ad2441de12bf7b5dc0055e0a940583d80fe104b",
+      "patch": "patches/0002-bionic.patch",
+      "sha256": "5691790db9e7a967b145ecdb0b67004ec55f0f0f7ab269455ca8c1f7b3fa9e79"
+    },
+    {
+      "project": "frameworks/base",
+      "base": "aaa4284f7e061771afb58c789924397111487e62",
+      "patch": "patches/0003-frameworks-base.patch",
+      "sha256": "60a1f97c962fe58d0c2649f4191863b7c1c03aaa3fd2ce45c2d3c651f7be183b"
+    },
+    {
+      "project": "frameworks/native",
+      "base": "9a9d8be6865c1d6ebd10321375b082314de5ecf6",
+      "patch": "patches/0004-frameworks-native.patch",
+      "sha256": "77a95d570e6add82c08ce555c291b4b026c6dcf1828bbc9509386781c488ec3a"
+    },
+    {
+      "project": "libcore",
+      "base": "1c599b67bcd3de5c50c79d0622e40b6de99b4cb4",
+      "patch": "patches/0005-libcore.patch",
+      "sha256": "00a2a7c7fa22e7b15b6d070f7903c5103511065f0d54abb66292551960b59c24"
+    },
+    {
+      "project": "packages/apps/Settings",
+      "base": "adf61c13902a2789c965e6d74de5c466f5603b55",
+      "patch": "patches/0006-settings.patch",
+      "sha256": "7e10bc8baef592a96f8682f5f069df634aabec2cdf8c1fdace893df3edcf5735"
+    },
+    {
+      "project": "packages/modules/AppSearch",
+      "base": "66fdb746655f01346649c34d380faf5dad593b98",
+      "patch": "patches/0007-appsearch.patch",
+      "sha256": "1b4061c985960eea3264cea43e80d2b0d31114e785d3a7ae1efbdf71b3261f5f"
+    },
+    {
+      "project": "packages/modules/Bluetooth",
+      "base": "b5d4b73e1122a714c3c5223b9932c7b733690c5d",
+      "patch": "patches/0008-bluetooth.patch",
+      "sha256": "c63c49e033ea517458a475ca8e384e09a48bfa91d6f2c138c7ee80963ef7e899"
+    },
+    {
+      "project": "packages/modules/ConfigInfrastructure",
+      "base": "0c59a9196a09ef1f02571d10525e2cb1d2b8fc53",
+      "patch": "patches/0009-config-infrastructure.patch",
+      "sha256": "9de1a4c7b3120db7d18abef1c3e09578032b801677558c72df44c581e501f88d"
+    },
+    {
+      "project": "packages/modules/Connectivity",
+      "base": "c9f3e7795256bd4a3f99d02e604e24fd1552c2b3",
+      "patch": "patches/0010-connectivity.patch",
+      "sha256": "6570d18355486096c7a811151e84029c841c4217200051fb540d23aa64ccfe42"
+    },
+    {
+      "project": "packages/modules/Nfc",
+      "base": "393ad5d17936a27b241f2796ff58f877ee9062aa",
+      "patch": "patches/0011-nfc.patch",
+      "sha256": "8555167624637dce43692ed6e68550ed672b93df7b5c671b1208c654f8291abd"
+    },
+    {
+      "project": "packages/modules/Permission",
+      "base": "ee30155a8872cd022b5b7fb1983fdcf09e752723",
+      "patch": "patches/0012-permission.patch",
+      "sha256": "3078e1a1197d5e234460fdf07f9cee301dc589981da925907df94993fe058795"
+    },
+    {
+      "project": "packages/modules/StatsD",
+      "base": "aae39057403d4538cb56c856b880fd02d5765a1e",
+      "patch": "patches/0013-statsd.patch",
+      "sha256": "bf81f100ba60dc9b6c2dd3bf977b15f7e779559bb330bcf0c3847345ddd9798f"
+    },
+    {
+      "project": "packages/providers/DownloadProvider",
+      "base": "6d2a304dc8237b2da9910799380636fe5b1f3970",
+      "patch": "patches/0014-download-provider.patch",
+      "sha256": "5afbd6ef077e55e5cf9414e52e3f2b589455010b1a0fbcec1bd25a28c10f3911"
+    },
+    {
+      "project": "system/tools/aidl",
+      "base": "3747384b876442e7ea0c355fe5adc75b29362833",
+      "patch": "patches/0015-aidl.patch",
+      "sha256": "e0827ba067933e27591c6af9e680085efdf59239d365da8e6d415c132f980c6b"
+    },
+    {
+      "project": "packages/apps/GmsCompat",
+      "repository": "https://github.com/VoltageOS/packages_apps_GmsCompat",
+      "base": "ec541b9f7ff42faad5aa553e4bb255014aec2527",
+      "patch": "patches/0016-gmscompat-app-lineage-adapter.patch",
+      "sha256": "83493db5a7ab35d00692f8b7030e2c3e81fb36c074cd2b802340fa3223a5381e"
+    }
+  ],
+  "companions": [
+    {
+      "project": "external/GmsCompatConfig",
+      "repository": "https://github.com/GrapheneOS/platform_external_GmsCompatConfig",
+      "commit": "87b8bc336cc6aca7fe480cfcc98aaaeecfd7eb6a",
+      "version": 170,
+      "apk_sha256": "1cab0f533caefcbf49c7c9de1b4399b3b518a5e4c91ca98c4c7cf4fd363d986d",
+      "certificate_sha256": "6ebb65c5daa95641f7a774ea35d26ff251575cb32e34a8a5d655b2742b57321f"
+    }
+  ]
+}

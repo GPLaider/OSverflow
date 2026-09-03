@@ -1,0 +1,90 @@
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 8ff98c6e65a7e0e6aaaa559303c962c2faa93839..97a9e241cdd74acd3b0c73ec5534cabb002e0ce6 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -10,7 +10,6 @@
+     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+   <!-- needed to be able to create TempServiceBinding to any package-->
+     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+-    <uses-permission android:name="app.grapheneos.logviewer.SHOW_ERROR_REPORT" />
+     <!-- needed for config fragments for updating permissions for Android Auto, etc. -->
+     <uses-permission android:name="android.permission.UPDATE_AND_INVALIDATE_PERMISSION_STATE" />
+ 
+diff --git a/product.mk b/product.mk
+new file mode 100644
+index 0000000000000000000000000000000000000000..5a1f415b56d6839f0705ad68a2065b0cfe2f7570
+--- /dev/null
++++ b/product.mk
+@@ -0,0 +1,3 @@
++# Sandboxed Google Play compatibility layer.
++PRODUCT_PACKAGES += \
++    GmsCompat
+diff --git a/src/app/grapheneos/gmscompat/BinderGms2Gca.kt b/src/app/grapheneos/gmscompat/BinderGms2Gca.kt
+index 7bfd2b3fc09d4b91209be64c160c8730414dcc2f..03193020ef2cdf587294cd7d6a579d76d90954ea 100644
+--- a/src/app/grapheneos/gmscompat/BinderGms2Gca.kt
++++ b/src/app/grapheneos/gmscompat/BinderGms2Gca.kt
+@@ -7,7 +7,6 @@ import android.content.Context
+ import android.content.Intent
+ import android.content.pm.PackageManager
+ import android.database.IContentObserver
+-import android.ext.LogViewerApp
+ import android.ext.PackageId
+ import android.net.Uri
+ import android.os.Binder
+@@ -458,14 +457,6 @@ object BinderGms2Gca : IGms2Gca.Stub() {
+ 
+         val ctx = App.ctx()
+ 
+-        val intent = Intent(Intent.ACTION_APP_ERROR)
+-        intent.putExtra(Intent.EXTRA_BUG_REPORT, aer)
+-        val configVersion = ctx.packageManager.getPackageInfo(ConfigUpdateReceiver.CONFIG_HOLDER_PACKAGE,
+-                PackageManager.PackageInfoFlags.of(0L)).longVersionCode
+-        intent.putExtra(LogViewerApp.EXTRA_SHOW_REPORT_BUTTON, true)
+-        intent.putExtra(Intent.EXTRA_TEXT, "GmsCompatConfig version: $configVersion")
+-        intent.setPackage(LogViewerApp.getPackageName());
+-
+         val reportAction = run {
+             val url = "https://github.com/GrapheneOS/os-issue-tracker/issues"
+             val urlIntent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+@@ -476,7 +467,6 @@ object BinderGms2Gca : IGms2Gca.Stub() {
+         Notifications.builder(Notifications.CH_GMS_CRASHED).run {
+             setContentTitle(ctx.getString(R.string.notif_gms_crash_title, getApplicationLabel(ctx, aer.packageName)))
+             setContentText(ctx.getText(R.string.notif_gms_crash_text))
+-            setContentIntent(activityPendingIntent(intent))
+             setShowWhen(true)
+             setAutoCancel(true)
+             setSmallIcon(R.drawable.ic_crash_report)
+diff --git a/src/app/grapheneos/gmscompat/PendingActionReceiver.java b/src/app/grapheneos/gmscompat/PendingActionReceiver.java
+index 0f0f731b1526a8cd56d2ff227d2034e51c59d50d..8740582a8ab0db91aca14541c3144f016f517a9e 100644
+--- a/src/app/grapheneos/gmscompat/PendingActionReceiver.java
++++ b/src/app/grapheneos/gmscompat/PendingActionReceiver.java
+@@ -53,23 +53,24 @@ public class PendingActionReceiver extends BroadcastReceiver {
+         switch (intent.getAction()) {
+             case ACTION_SET_PREF_BOOLEAN_AND_CANCEL_NOTIF -> {
+                 String key = extras.getString(EXTRA_BOOL_PREF_KEY);
+-                boolean value = extras.getBoolean2(EXTRA_BOOL_PREF_VALUE);
++                boolean value = extras.getBoolean(EXTRA_BOOL_PREF_VALUE);
+                 SharedPreferences.Editor ed = App.preferences().edit();
+                 ed.putBoolean(key, value);
+                 ed.apply();
+-                int notifId = extras.getNumber(EXTRA_NOTIF_ID);
++                int notifId = extras.getInt(EXTRA_NOTIF_ID);
+                 Notifications.cancel(notifId);
+             }
+             case ACTION_WRITE_GOS_PACKAGE_STATE_AND_CANCEL_NOTIF -> {
+                 String pkgName = extras.getString(Intent.EXTRA_PACKAGE_NAME);
+-                @GosPackageStateFlag.Enum int gosPsFlag = extras.getNumber(EXTRA_GOS_PACKAGE_STATE_FLAG);
+-                boolean gosPsFlagValue = extras.getBoolean2(EXTRA_GOS_PACKAGE_STATE_FLAG_VALUE);
++                @GosPackageStateFlag.Enum int gosPsFlag =
++                        extras.getInt(EXTRA_GOS_PACKAGE_STATE_FLAG);
++                boolean gosPsFlagValue = extras.getBoolean(EXTRA_GOS_PACKAGE_STATE_FLAG_VALUE);
+ 
+                 GosPackageState.Editor ed = GosPackageState.edit(pkgName, context.getUser());
+                 ed.setFlagState(gosPsFlag, gosPsFlagValue);
+                 ed.apply();
+ 
+-                int notifId = extras.getNumber(EXTRA_NOTIF_ID);
++                int notifId = extras.getInt(EXTRA_NOTIF_ID);
+                 Notifications.cancel(notifId);
+             }
+         }

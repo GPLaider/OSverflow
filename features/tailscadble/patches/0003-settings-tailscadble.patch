@@ -1,16 +1,12 @@
-From: Tailscadble contributors
-Subject: [PATCH 3/4] Settings: add the system-user Tailscadble switch
-
-Expose one setting-backed Developer Options switch. The UI records only owner
-intent, never an address, and leaves all VPN/network decisions to AdbService.
-
-diff --git a/res/values-ko/strings.xml b/res/values-ko/strings.xml
---- a/res/values-ko/strings.xml
-+++ b/res/values-ko/strings.xml
-@@ -5997,4 +5997,13 @@
-     <string name="safety_center_account_security_search_terms" msgid="3950829613581775913"></string>
-     <string name="safety_center_device_finder_search_terms" msgid="452013643838126923"></string>
-     <string name="safety_center_system_component_update_search_terms" msgid="3110390275537109543"></string>
+diff --git a/res/values-ko/cm_strings.xml b/res/values-ko/cm_strings.xml
+index 4c53d3ad47374d3a6a3817dd407225364dbd436d..a976590ac9d1dcbe487942156bb3b0b61af1c614 100644
+--- a/res/values-ko/cm_strings.xml
++++ b/res/values-ko/cm_strings.xml
+@@ -18,6 +18,16 @@
+     <string name="keyboard_extras_title">추가 기능</string>
+     <string name="advanced_keyboard_settings_title">고급 설정</string>
+     <string name="adb_enable_root">디버깅 시 루트 권한 사용</string>
++
 +    <string name="tailscadble_title">Tailscadble</string>
 +    <string name="tailscadble_keywords">adb, 원격, tailscale, tailscadble</string>
 +    <string name="tailscadble_summary_off">사용 안 함</string>
@@ -20,14 +16,18 @@ diff --git a/res/values-ko/strings.xml b/res/values-ko/strings.xml
 +    <string name="tailscadble_error_tailscale_required">먼저 Tailscale을 설치하세요.</string>
 +    <string name="tailscadble_warning_title">Tailscadble을 켤까요?</string>
 +    <string name="tailscadble_warning_message">활성 Tailscale VPN 경로에서만 기존 adbd가 연결을 받습니다. 기존 ADB 호스트 승인은 그대로 필요하며 주소는 영구 저장하거나 표시하지 않습니다.</string>
- </resources>
-diff --git a/res/values/strings.xml b/res/values/strings.xml
---- a/res/values/strings.xml
-+++ b/res/values/strings.xml
-@@ -14949,4 +14949,13 @@
-     <string name="safety_center_device_finder_search_terms"></string>
-     <!-- Safety Center system component update search terms [CHAR LIMIT=NONE] -->
-     <string name="safety_center_system_component_update_search_terms"></string>
+     <string name="adb_enable_summary_root">ADB와 같은 디버깅 모드 사용시 루트 권한을 사용합니다.</string>
+     <string name="backup_transport_setting_label">백업 제공자 변경</string>
+     <string name="backup_transport_title">백업 제공자 선택</string>
+diff --git a/res/values/cm_strings.xml b/res/values/cm_strings.xml
+index 38966afd63ec25b876899880cd90fac1f55409ad..684822f2fe5dcb1b2e1baa9cc00760fd19ea8382 100644
+--- a/res/values/cm_strings.xml
++++ b/res/values/cm_strings.xml
+@@ -26,6 +26,16 @@
+ 
+     <!-- Android debugging as root -->
+     <string name="adb_enable_root">Rooted debugging</string>
++
 +    <string name="tailscadble_title">Tailscadble</string>
 +    <string name="tailscadble_keywords">adb, remote, tailscale, tailscadble</string>
 +    <string name="tailscadble_summary_off">Off</string>
@@ -37,8 +37,11 @@ diff --git a/res/values/strings.xml b/res/values/strings.xml
 +    <string name="tailscadble_error_tailscale_required">Install Tailscale first.</string>
 +    <string name="tailscadble_warning_title">Turn on Tailscadble?</string>
 +    <string name="tailscadble_warning_message">The existing adbd will accept connections only through the active Tailscale VPN path. Existing ADB host authorization remains required, and no address is persisted or displayed.</string>
- </resources>
+     <string name="adb_enable_summary_root">Allow running Android debugging as root</string>
+ 
+     <!-- Backup Transport selection settings menu and activity title -->
 diff --git a/res/xml/development_settings.xml b/res/xml/development_settings.xml
+index 5ce46b135f0d59c5fbb331189e16b2ab34b436df..76695d2819ccc2accf67ec5acd67ab3b944f3c09 100644
 --- a/res/xml/development_settings.xml
 +++ b/res/xml/development_settings.xml
 @@ -191,6 +191,13 @@
@@ -56,6 +59,7 @@ diff --git a/res/xml/development_settings.xml b/res/xml/development_settings.xml
              android:key="enable_adb_root"
              android:title="@string/adb_enable_root"
 diff --git a/src/com/android/settings/development/DevelopmentSettingsDashboardFragment.java b/src/com/android/settings/development/DevelopmentSettingsDashboardFragment.java
+index 0495ee9e5e05ca1ddf98af614a5c2ed09b8bef7f..50da7a2ef17b574dbc3b4f3e5c178656e4ff4dbe 100644
 --- a/src/com/android/settings/development/DevelopmentSettingsDashboardFragment.java
 +++ b/src/com/android/settings/development/DevelopmentSettingsDashboardFragment.java
 @@ -734,6 +734,7 @@ public class DevelopmentSettingsDashboardFragment extends RestrictedDashboardFra
@@ -68,6 +72,7 @@ diff --git a/src/com/android/settings/development/DevelopmentSettingsDashboardFr
          controllers.add(new LocalTerminalPreferenceController(context));
 diff --git a/src/com/android/settings/development/TailscadblePreferenceController.java b/src/com/android/settings/development/TailscadblePreferenceController.java
 new file mode 100644
+index 0000000000000000000000000000000000000000..505e5364ffe7af66340634d1d30b950b7226f0e3
 --- /dev/null
 +++ b/src/com/android/settings/development/TailscadblePreferenceController.java
 @@ -0,0 +1,185 @@
@@ -256,5 +261,3 @@ new file mode 100644
 +        }
 +    }
 +}
--- 
-2.51.0
