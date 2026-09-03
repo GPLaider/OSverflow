@@ -35,7 +35,7 @@
   <project name="GPLaider/android_device_motorola_lyriq"
            path="device/motorola/lyriq"
            remote="osverflow-github"
-           revision="625368f36475fbf26a6aff624725c1abeeed5311" />
+           revision="ce94da8dfa29394848f421841531cccec7b1fc2f" />
   <project name="VoltageOS/packages_apps_GmsCompat"
            path="packages/apps/GmsCompat"
            remote="osverflow-github"

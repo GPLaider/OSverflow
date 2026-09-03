@@ -143,7 +143,7 @@ def verify_device_metadata() -> None:
         "V1TLS35.73-60-3-14/89e5f-45c91",
     ]
     device_source_repository = "https://github.com/GPLaider/android_device_motorola_lyriq"
-    device_source_commit = "625368f36475fbf26a6aff624725c1abeeed5311"
+    device_source_commit = "ce94da8dfa29394848f421841531cccec7b1fc2f"
     assert support["device_source_repository"] == device_source_repository
     assert support["device_source_commit"] == device_source_commit
     assert support["stock_input_extractor"] == (
@@ -160,7 +160,11 @@ def verify_device_metadata() -> None:
     }
     assert support["bootloader"]["unlock_required"] is True
     assert support["bootloader"]["relocking_supported"] is False
-    assert support["build"]["type"] == "user"
+    assert support["build"] == {
+        "type": "user",
+        "framework_security_patch": "2026-08-01",
+        "vendor_security_patch": "2026-08-01",
+    }
     assert support["public_install_artifact"] is None
 
 
@@ -250,7 +254,7 @@ def verify_lyriq_platform_support() -> None:
         "device/motorola/lyriq": (
             "GPLaider/android_device_motorola_lyriq",
             "osverflow-github",
-            "625368f36475fbf26a6aff624725c1abeeed5311",
+            "ce94da8dfa29394848f421841531cccec7b1fc2f",
         ),
         "packages/apps/GmsCompat": (
             "VoltageOS/packages_apps_GmsCompat",
