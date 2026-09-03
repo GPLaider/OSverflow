@@ -14,7 +14,9 @@ The sanitized Lyriq integration and its hash-only local-input contracts live in
 It contains no proprietary payload and does not claim exact kernel-source closure.
 Its extractor was accepted against exact `V1TLS35.73-60-3-10` and
 `V1TLS35.73-60-3-14` Software Fix packages and rejects other builds before
-creating output.
+creating output. That repository also pins the exact public GKI release identity
+and five Motorola `v1tl35.73-60-3` source repositories while explicitly keeping
+unresolved vendor/external kernel modules outside reproducible-build claims.
 
 Feature directories contain their own source anchors and attribution where the
 boundary differs. Branding never erases upstream authorship, copyright, license,

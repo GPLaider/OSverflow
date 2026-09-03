@@ -17,8 +17,9 @@
     "V1TLS35.73-60-3-14/89e5f-45c91"
   ],
   "device_source_repository": "https://github.com/GPLaider/android_device_motorola_lyriq",
-  "device_source_commit": "21158bf3a3590c3bf0fa90c59585a5eaa91d1d77",
-  "stock_input_extractor": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/21158bf3a3590c3bf0fa90c59585a5eaa91d1d77/tools/extract_stock.py",
+  "device_source_commit": "4445ae52539a51d428728b532e7b18b4c117676b",
+  "stock_input_extractor": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/4445ae52539a51d428728b532e7b18b4c117676b/tools/extract_stock.py",
+  "kernel_source_reference": "https://github.com/GPLaider/android_device_motorola_lyriq/blob/4445ae52539a51d428728b532e7b18b4c117676b/kernel-source-reference.json",
   "bootloader": {
     "unlock_required": true,
     "relocking_supported": false

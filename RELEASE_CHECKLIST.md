@@ -17,7 +17,10 @@
 ## Installable Lyriq release — additional blockers
 
 - [ ] Reconstruct the accepted source as clean per-project Git commits.
-- [ ] Publish the corresponding kernel source and complete source manifest.
+- [x] Pin the exact public GKI identity and five matching Motorola kernel-source
+      repositories, including Lyriq DTS and hardware drivers.
+- [ ] Resolve the vendor-module source prefix and external-module revisions,
+      then reproduce the kernel build and complete source manifest.
 - [x] User-supplied stock-firmware extraction is hash-pinned and verified for
       exact `-3-10` and `-3-14` contracts without redistributing payloads.
 - [ ] Integrate and validate a current Android security bulletin without changing

@@ -118,8 +118,9 @@ def verify_device_metadata() -> None:
         "V1TLS35.73-60-3-14/89e5f-45c91",
     ]
     assert support["device_source_repository"] == "https://github.com/GPLaider/android_device_motorola_lyriq"
-    assert support["device_source_commit"] == "21158bf3a3590c3bf0fa90c59585a5eaa91d1d77"
+    assert support["device_source_commit"] == "4445ae52539a51d428728b532e7b18b4c117676b"
     assert support["stock_input_extractor"].endswith("/tools/extract_stock.py")
+    assert support["kernel_source_reference"].endswith("/kernel-source-reference.json")
     assert support["bootloader"]["unlock_required"] is True
     assert support["bootloader"]["relocking_supported"] is False
     assert support["public_install_artifact"] is None
