@@ -25,8 +25,9 @@
       the `osverflow_lyriq-bp4a-user` Soong/Make graph preflight.
 - [x] Pin the exact public GKI identity and five matching Motorola kernel-source
       repositories, including Lyriq DTS and hardware drivers.
-- [ ] Resolve the vendor-module source prefix and external-module revisions,
-      then reproduce the kernel build and complete source manifest.
+- [ ] Resolve and reproduce the missing kernel/vendor-module sources, or close
+      the corresponding-source and lawful-prebuilt redistribution path before
+      publishing any installable binary.
 - [x] User-supplied stock-firmware extraction is hash-pinned and verified for
       exact `-3-10` and `-3-14` contracts without redistributing payloads.
 - [x] The complete 27-file stock IMS input contract is hash-pinned, extracted

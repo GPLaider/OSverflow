@@ -17,6 +17,9 @@ Its extractor was accepted against exact `V1TLS35.73-60-3-10` and
 creating output. That repository also pins the exact public GKI release identity
 and five Motorola `v1tl35.73-60-3` source repositories while explicitly keeping
 unresolved vendor/external kernel modules outside reproducible-build claims.
+The stock-firmware extractor closes local input identity only; it does not by
+itself satisfy corresponding-source or binary-redistribution obligations for a
+public kernel/vendor-module release.
 
 Feature directories contain their own source anchors and attribution where the
 boundary differs. Branding never erases upstream authorship, copyright, license,

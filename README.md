@@ -70,16 +70,16 @@ tools/verify_android_patches.sh --check-applied <android-source-root>
 
 Expected final line: `OSVERFLOW_ANDROID_PATCHES_MATCH_OK`.
 
-## Current Lyriq binary anchor
+## Current Lyriq anchors
 
-- Product: OSverflow 16 RC1
-- Target: Motorola Edge 40 XT2303-2 / `lyriq`
-- Android: 16 / SDK 36
-- Build type: `userdebug`
-- Framework SPL: `2026-06-01`
-- Vendor SPL: `2026-08-01`
-- Frozen internal OTA SHA-256:
+- Frozen private RC1: `userdebug`, framework SPL `2026-06-01`, vendor SPL
+  `2026-08-01`; OTA SHA-256:
   `2bac3971baefa5aeb01595744d18ffb9648dd3f069866d39213d134e97f1a836`
+- Clean source target: `osverflow_lyriq-bp4a-user`, Android 16 / SDK 36,
+  framework and vendor SPL `2026-08-01`.
+- Public production artifact: none. The clean target has passed source and
+  build-graph preflight only; it has not yet produced a signed target-files/OTA
+  candidate or passed device acceptance.
 
 The hash identifies private maintainer evidence; it is not a download promise or
 permission to redistribute the binary.

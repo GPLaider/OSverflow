@@ -1,7 +1,9 @@
 # Known issues and unverified scope
 
-- RC1 is `userdebug`, not a production `user` build.
-- Framework SPL is `2026-06-01`; it must not be advertised as current.
+- The accepted private RC1 is `userdebug` with framework SPL `2026-06-01`; it
+  must not be advertised as the current clean source candidate.
+- The clean `user` target declares framework/vendor SPL `2026-08-01`, but no
+  signed target-files/OTA artifact or physical-device acceptance exists yet.
 - Public first installation and bootloader relocking are unsupported.
 - Only XT2303-2 on `V1TLS35.73-60-3-14` is in scope.
 - The frozen RC1 hardware prebuilts come from
@@ -17,3 +19,6 @@
 - Play Integrity, third-party keyboxes, and app compatibility are not guarantees.
 - The exact Tailscadble export contains hardening newer than its recorded core
   device acceptance and still needs focused signed-build regression.
+- The stock kernel/vendor-module build is not reproducible from Motorola's
+  currently published Lyriq source set; public binary corresponding-source and
+  redistribution review remains open.
