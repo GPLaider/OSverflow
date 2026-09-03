@@ -43,4 +43,8 @@
            path="external/GmsCompatConfig"
            remote="osverflow-github"
            revision="87b8bc336cc6aca7fe480cfcc98aaaeecfd7eb6a" />
+  <project name="GrapheneOS/platform_packages_apps_AppCompatConfig"
+           path="packages/apps/AppCompatConfig"
+           remote="osverflow-github"
+           revision="4bcc537aea249d2caf16c5f0425437dde175f979" />
 </manifest>

@@ -263,6 +263,11 @@ def verify_lyriq_platform_support() -> None:
             "osverflow-github",
             "87b8bc336cc6aca7fe480cfcc98aaaeecfd7eb6a",
         ),
+        "packages/apps/AppCompatConfig": (
+            "GrapheneOS/platform_packages_apps_AppCompatConfig",
+            "osverflow-github",
+            "4bcc537aea249d2caf16c5f0425437dde175f979",
+        ),
     }:
         raise SystemExit("unexpected Lyriq local-manifest project pins")
 
@@ -360,7 +365,12 @@ def verify_gmscompat() -> None:
             "version": 170,
             "apk_sha256": "1cab0f533caefcbf49c7c9de1b4399b3b518a5e4c91ca98c4c7cf4fd363d986d",
             "certificate_sha256": "6ebb65c5daa95641f7a774ea35d26ff251575cb32e34a8a5d655b2742b57321f",
-        }
+        },
+        {
+            "project": "packages/apps/AppCompatConfig",
+            "repository": "https://github.com/GrapheneOS/platform_packages_apps_AppCompatConfig",
+            "commit": "4bcc537aea249d2caf16c5f0425437dde175f979",
+        },
     ]:
         raise SystemExit("unexpected GmsCompat companion source contract")
 

@@ -16,7 +16,10 @@ Companion inputs are public and pinned instead of copied here:
   `ec541b9f7ff42faad5aa553e4bb255014aec2527`, then apply
   `0016-gmscompat-app-lineage-adapter.patch`;
 - `external/GmsCompatConfig`: GrapheneOS commit
-  `87b8bc336cc6aca7fe480cfcc98aaaeecfd7eb6a` (version 170).
+  `87b8bc336cc6aca7fe480cfcc98aaaeecfd7eb6a` (version 170);
+- `packages/apps/AppCompatConfig`: GrapheneOS commit
+  `4bcc537aea249d2caf16c5f0425437dde175f979`, providing the
+  `app_compat_config_proto-src` build input consumed by `frameworks/base`.
 
 The recorded GmsCompatConfig APK has SHA-256
 `1cab0f533caefcbf49c7c9de1b4399b3b518a5e4c91ca98c4c7cf4fd363d986d`
