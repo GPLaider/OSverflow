@@ -14,7 +14,10 @@ Every candidate has four independent acceptance layers:
 A candidate advances only when all applicable layers pass. `release-keys` text,
 a successful build, or a boot animation is not release acceptance.
 
-The frozen Lyriq RC1 was accepted as a local update on existing compatible
-OSverflow installations. A public first-install package is a separate artifact
-and is not yet qualified. No public OTA endpoint is declared until its signed
-metadata, artifact retention, rollback policy, and key custody are reviewed.
+The frozen Lyriq `userdebug` RC1 was accepted as a local update on existing
+compatible OSverflow installations. A separate production `user` candidate has
+passed static target-files, signer, AVB, extracted-partition, and OTA-payload
+checks but has not passed physical-device acceptance. A public first-install
+package is a separate artifact and is not yet qualified. No public OTA endpoint
+is declared until its signed metadata, artifact retention, rollback policy, and
+key custody are reviewed.

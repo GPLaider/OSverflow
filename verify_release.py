@@ -143,7 +143,7 @@ def verify_device_metadata() -> None:
         "V1TLS35.73-60-3-14/89e5f-45c91",
     ]
     device_source_repository = "https://github.com/GPLaider/android_device_motorola_lyriq"
-    device_source_commit = "8a9a659c602842ba32fe4a7890900035a2083167"
+    device_source_commit = "5eab908054b184268bee7b11d6e93841c0b27f68"
     assert support["device_source_repository"] == device_source_repository
     assert support["device_source_commit"] == device_source_commit
     assert support["stock_input_extractor"] == (
@@ -164,6 +164,16 @@ def verify_device_metadata() -> None:
         "type": "user",
         "framework_security_patch": "2026-08-01",
         "vendor_security_patch": "2026-08-01",
+    }
+    assert support["private_production_candidate"] == {
+        "status": "static-validated-not-device-accepted",
+        "fingerprint": "motorola/osverflow_lyriq/lyriq:16/BP4A.251205.006/OSVLYRIQRC1:user/release-keys",
+        "unsigned_target_files_sha256": "a5914c1e389bfe970c26aaf3c63bea1644cd79d1b3ce5a299894f01105ac87c6",
+        "signed_target_files_sha256": "084e2c3ea6e3da956d7f6245df3925e83b932300604860eb714b2b999d37aebf",
+        "signed_target_files_size": 3455169484,
+        "ota_sha256": "740d3a5896845116a02d3b70a323d87413dc4118f159a5849eef5c484d5eb502",
+        "ota_size": 1495352281,
+        "runtime_accepted": False,
     }
     assert support["public_install_artifact"] is None
 
@@ -251,7 +261,7 @@ def verify_lyriq_platform_support() -> None:
         "device/motorola/lyriq": (
             "GPLaider/android_device_motorola_lyriq",
             "osverflow-github",
-            "8a9a659c602842ba32fe4a7890900035a2083167",
+            "5eab908054b184268bee7b11d6e93841c0b27f68",
         ),
         "packages/apps/GmsCompat": (
             "VoltageOS/packages_apps_GmsCompat",

@@ -38,7 +38,10 @@
       the date by property alone.
 - [x] Preflight the private production signer map for every APK role and every
       signable APEX container/payload key while preserving upstream-signed APKs.
-- [ ] Produce and validate a production `user` build.
+- [x] Produce a production `user` build and statically validate its target-files
+      signing, APK/APEX signers, AVB chain, partition identity, and OTA payload.
+- [ ] Pass physical-device boot, runtime, and rollback acceptance for that exact
+      production candidate.
 - [ ] Qualify a clean first install from the declared Motorola stock baseline on
       the spare XT2303-2, including recovery and rollback.
 - [ ] Re-run the exact Tailscadble hardening export matrix on a signed device build.

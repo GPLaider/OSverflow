@@ -17,12 +17,15 @@ including Lyriq DTS and hardware drivers, are pinned in the device repository.
 Vendor/external module revision and reproducible-build closure remain open.
 
 The clean-checkout local manifest and six exact-anchor platform compatibility
-patches are now packaged in this repository. They pass source and patch-apply
-verification; a clean production `user` build has not yet been produced.
+patches are packaged in this repository. They pass source and patch-apply
+verification. A production `user` target has also been built and passed static
+target-files, signer, AVB, partition, and OTA-payload verification; that exact
+candidate has not yet passed physical-device acceptance.
 
-Current status: **release candidate**. Two XT2303-2 units accepted the frozen RC1
-through recorded slot and full Virtual A/B update flows. This repository does not
-yet contain a public first-install image or authorize bootloader relocking.
+Current status: **release candidate**. Two XT2303-2 units accepted the frozen
+`userdebug` RC1 through recorded slot and full Virtual A/B update flows. The
+separate production `user` candidate is static-validated only. This repository
+does not contain a public first-install image or authorize bootloader relocking.
 
 Validated areas on the recorded build include boot, display/high refresh, UDFPS,
 DT2W, Wi-Fi, Bluetooth, NFC, GNSS, sensors, haptics, camera, audio, microphone,

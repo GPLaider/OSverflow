@@ -72,17 +72,21 @@ Expected final line: `OSVERFLOW_ANDROID_PATCHES_MATCH_OK`.
 
 ## Current Lyriq anchors
 
-- Frozen private RC1: `userdebug`, framework SPL `2026-06-01`, vendor SPL
+- Device-accepted private RC1: `userdebug`, framework SPL `2026-06-01`, vendor SPL
   `2026-08-01`; OTA SHA-256:
   `2bac3971baefa5aeb01595744d18ffb9648dd3f069866d39213d134e97f1a836`
-- Clean source target: `osverflow_lyriq-bp4a-user`, Android 16 / SDK 36,
-  framework and vendor SPL `2026-08-01`.
-- Public production artifact: none. The clean target has passed source and
-  build-graph preflight only; it has not yet produced a signed target-files/OTA
-  candidate or passed device acceptance.
+- Production candidate: `osverflow_lyriq-bp4a-user`, Android 16 / SDK 36,
+  framework and vendor SPL `2026-08-01`; fingerprint
+  `motorola/osverflow_lyriq/lyriq:16/BP4A.251205.006/OSVLYRIQRC1:user/release-keys`.
+- The production candidate passed target-files signing, actual APK/APEX signer,
+  AVB-chain, extracted-partition identity, and OTA-payload equality checks. OTA
+  SHA-256: `740d3a5896845116a02d3b70a323d87413dc4118f159a5849eef5c484d5eb502`.
+- Public install artifact: none. The production candidate has not been flashed
+  or accepted on a physical device, and the remaining public-binary gates still
+  apply.
 
-The hash identifies private maintainer evidence; it is not a download promise or
-permission to redistribute the binary.
+The hashes identify private maintainer evidence; they are not download promises
+or permission to redistribute either binary.
 
 ## Independence
 

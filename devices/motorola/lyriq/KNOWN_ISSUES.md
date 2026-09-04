@@ -2,8 +2,9 @@
 
 - The accepted private RC1 is `userdebug` with framework SPL `2026-06-01`; it
   must not be advertised as the current clean source candidate.
-- The clean `user` target declares framework/vendor SPL `2026-08-01`, but no
-  signed target-files/OTA artifact or physical-device acceptance exists yet.
+- The production `user` candidate declares framework/vendor SPL `2026-08-01`
+  and passed static target-files, signer, AVB, partition, and OTA-payload checks.
+  It has not passed physical-device boot, runtime, or rollback acceptance.
 - Public first installation and bootloader relocking are unsupported.
 - Only XT2303-2 on `V1TLS35.73-60-3-14` is in scope.
 - The frozen RC1 hardware prebuilts come from
