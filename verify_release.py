@@ -22,6 +22,7 @@ REQUIRED = (
     "README.md",
     "LICENSE",
     "NOTICE",
+    "docs/SOURCE_RELEASE_RC1.md",
     "docs/LICENSE_AUDIT.md",
     "SECURITY.md",
     "RELEASE_CHECKLIST.md",

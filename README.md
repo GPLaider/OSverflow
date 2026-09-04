@@ -24,6 +24,7 @@ and proprietary redistribution review remain open.
 | [Lyriq platform support](features/lyriq-platform-support/README.md) | source-closure patchset | Six pinned hybrid-build, SELinux, IMS, and vendor-visibility patches |
 
 See [feature status](docs/FEATURES.md), [release model](docs/RELEASE_MODEL.md),
+[source RC1 notes](docs/SOURCE_RELEASE_RC1.md),
 [license audit](docs/LICENSE_AUDIT.md), [Lyriq support](devices/motorola/lyriq/README.md),
 and the separate
 [`android_device_motorola_lyriq`](https://github.com/GPLaider/android_device_motorola_lyriq)
